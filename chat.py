@@ -22,15 +22,14 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 # GUARDADO REMOTO EN GITHUB (JSONL)
 # -----------------------------------------
 
-GITHUB_REPO = "Clonuel/chatbot_recomendacion_cafe_te"
+# 🚨 TU REPO REAL
+GITHUB_REPO = "Clonuel/1_chatbot_recomendacion_cafe_te"
+
 FILE_PATH = "pedidos/pedidos.jsonl"
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Cargado desde Streamlit Cloud
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
 
 def guardar_pedido_en_github(pedido):
-    """
-    Guarda un pedido como una línea JSON en un archivo .jsonl del repositorio.
-    Si el archivo no existe, lo crea.
-    """
+    """Guarda un pedido en un archivo .jsonl dentro del repositorio GitHub."""
 
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
@@ -38,37 +37,43 @@ def guardar_pedido_en_github(pedido):
         "Accept": "application/vnd.github+json"
     }
 
-    # Paso 1: Obtener archivo existente (si existe)
+    # Intentar obtener el archivo
     resp = requests.get(url, headers=headers)
 
     if resp.status_code == 200:
         data = resp.json()
-        sha = data["sha"]  # necesario para actualizar
+        sha = data["sha"]
         contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
     else:
+        # Archivo nuevo
         sha = None
         contenido_actual = ""
 
-    # Paso 2: Agregar nueva línea JSON
+    # Agregar nuevo pedido
     nueva_linea = json.dumps(pedido, ensure_ascii=False)
     nuevo_contenido = contenido_actual + nueva_linea + "\n"
 
-    # Paso 3: Subir el archivo actualizado
+    # Crear body
     update_data = {
         "message": "Nuevo pedido agregado",
         "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8"),
-        "sha": sha
     }
 
+    # Solo incluir SHA si el archivo existía
+    if sha:
+        update_data["sha"] = sha
+
+    # Subir archivo
     update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
 
-    if update_resp.status_code in [200, 201]:
-        print("Pedido guardado en GitHub correctamente.")
+    if update_resp.status_code not in (200, 201):
+        st.error("⚠ Error al guardar en GitHub: " + update_resp.text)
     else:
-        print("Error al guardar en GitHub:", update_resp.text)
+        print("Pedido guardado en GitHub correctamente.")
+
 
 # -----------------------------------------
-# BASE DE DATOS SQLITE
+# BASE DE DATOS SQLITE (local)
 # -----------------------------------------
 def init_db():
     conn = sqlite3.connect("pedidos.db")
@@ -87,19 +92,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-
-def guardar_pedido(codigo, nombre, producto, cantidad, total):
-    conn = sqlite3.connect("pedidos.db")
-    cursor = conn.cursor()
-
-    cursor.execute(
-        "INSERT INTO pedidos (codigo, nombre, producto, cantidad, total) VALUES (?, ?, ?, ?, ?)",
-        (codigo, nombre, producto, cantidad, total)
-    )
-
-    conn.commit()
-    conn.close()
 
 
 # -----------------------------------------
@@ -129,7 +121,6 @@ catalogo = {
     "té verde sencha": {"tipo": "té", "perfil": "herbal", "precio": 780},
 }
 
-
 def mostrar_catalogo():
     texto = "### 📜 Catálogo disponible:\n"
     for nombre, datos in catalogo.items():
@@ -154,7 +145,6 @@ def extraer_nombre(texto):
         if m:
             return m.group(1).capitalize()
 
-    # Si dice solo una palabra, probablemente sea el nombre
     if len(texto.split()) == 1 and texto.isalpha():
         return texto.capitalize()
 
@@ -172,13 +162,11 @@ def recomendar_por_perfil(preferencia, actual=None):
     if not opciones:
         return None, None
 
-    # si hay producto actual, busca otro diferente
     if actual:
         for nombre, datos in opciones:
             if nombre != actual:
                 return nombre, datos
 
-    # si no, devuelve el primero
     return opciones[0]
 
 
@@ -200,12 +188,11 @@ def procesar(texto):
     if "catálogo" in texto_l or "catalogo" in texto_l:
         return mostrar_catalogo()
 
-    # 3. Preferencia por sabor
+    # 3. Preferencia sabor
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
 
     for p in perfiles:
         if p in texto_l:
-            # Normalizo cítrico
             if p == "citric":
                 p = "cítrico"
 
@@ -223,7 +210,7 @@ def procesar(texto):
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
-            nombre, datos = recomendar_por_perfil(mem["preferencia"], actual=actual)
+            nombre, datos = recomendar_por_perfil(mem["preferencia"], actual)
 
             if nombre:
                 mem["producto_seleccionado"] = nombre
@@ -232,10 +219,9 @@ def procesar(texto):
                     f"**{nombre.title()}** — {datos['perfil']} — **${datos['precio']}**\n"
                     f"¿Te gusta?"
                 )
-
         return "¿Preferís café o té?"
 
-    # 5. Selección por nombre de producto
+    # 5. Selección específica
     for prod in catalogo.keys():
         if prod in texto_l:
             mem["producto_seleccionado"] = prod
@@ -259,57 +245,54 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
-       # 8. Finalizar compra
-    if texto_l in ["comprar", "confirmo"]:
-        if mem["producto_seleccionado"] and mem["cantidad"]:
-            prod = mem["producto_seleccionado"]
-            cantidad = mem["cantidad"]
-            precio = catalogo[prod]["precio"]
-            total = precio * cantidad
-            codigo = f"PED{random.randint(10000,99999)}"
+    # 8. FINALIZAR COMPRA (corregido)
+    if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
+        prod = mem["producto_seleccionado"]
+        cantidad = mem["cantidad"]
+        precio = catalogo[prod]["precio"]
+        total = precio * cantidad
+        codigo = f"PED{random.randint(10000,99999)}"
 
-            # Guardar en GitHub JSONL
-            guardar_pedido_en_github({
-                "codigo": codigo,
-                "nombre": mem["nombre"],
-                "producto": prod,
-                "cantidad": cantidad,
-                "total": total
-            })
+        # Guardar en GitHub
+        guardar_pedido_en_github({
+            "codigo": codigo,
+            "nombre": mem["nombre"],
+            "producto": prod,
+            "cantidad": cantidad,
+            "total": total
+        })
 
-            # Reset
-            mem["producto_seleccionado"] = None
-            mem["cantidad"] = None
+        mem["producto_seleccionado"] = None
+        mem["cantidad"] = None
 
-            return (
-                f"✅ **Compra confirmada, {mem['nombre']}!**\n"
-                f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
-                f"Gracias por tu compra ☕✨"
-            )
+        return (
+            f"✅ **Compra confirmada, {mem['nombre']}!**\n"
+            f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
+            f"Gracias por tu compra ☕✨"
+        )
 
-    # 9. Intenciones principales
+    # 9. Preguntas base
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
 
     if "té" in texto_l or "te" in texto_l:
         return "¿Preferís algo floral, herbal o dulce?"
 
-    # ❓ No entendido
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
 
 # -----------------------------------------
 # INTERFAZ
 # -----------------------------------------
-
 col1, col2 = st.columns(2)
+
 if col1.button("📜 Ver Catálogo"):
     st.markdown(mostrar_catalogo())
 
 if col2.button("🛒 Comprar"):
     st.markdown("Decime qué producto querés comprar.")
 
-# Chat
+# Chat UI
 if "historial" not in st.session_state:
     st.session_state.historial = [
         {"role": "assistant", "content": "¡Hola! ¿Cómo te llamás?"}
@@ -327,4 +310,3 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
-
