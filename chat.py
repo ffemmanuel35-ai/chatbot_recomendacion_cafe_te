@@ -17,8 +17,6 @@ Te ayudo a elegir y comprar café o té.
 Puedo recomendar productos según **sabor**, **intensidad** o **tipo**,  
 y puedo recordar tus **preferencias** y **tu nombre**.  
 """)
-# PRUEBA: ¿SE CARGÓ EL TOKEN?
-st.write("¿TOKEN CARGADO?:", "SÍ" if GITHUB_TOKEN else "NO")
 
 # -----------------------------------------
 # GUARDADO REMOTO EN GITHUB (JSONL)
@@ -30,6 +28,8 @@ GITHUB_REPO = "ffemanuel35-ai/chatbot_recomendacion_cafe_te"
 FILE_PATH = "pedidos/pedidos.jsonl"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
 
+# PRUEBA: ¿SE CARGÓ EL TOKEN?
+st.write("¿TOKEN CARGADO?:", "SÍ" if GITHUB_TOKEN else "NO")
 
 def guardar_pedido_en_github(pedido):
     """Guarda un pedido en un archivo .jsonl dentro del repositorio GitHub."""
@@ -313,6 +313,7 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
 
