@@ -243,7 +243,8 @@ def procesar(texto):
 
     # 2. Catálogo
     if "catálogo" in texto_l or "catalogo" in texto_l:
-        return mostrar_catalogo()
+       mostrar_catalogo_con_imagenes()
+       return ""
 
     # 3. Preferencias por perfil
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
@@ -367,6 +368,7 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
 
