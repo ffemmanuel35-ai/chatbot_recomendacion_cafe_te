@@ -5,3 +5,4 @@
 {"codigo": "PED29428", "nombre": "Enrique", "producto": "café colombiano especial", "cantidad": 6, "total": 6900, "metodo_pago": "tarjeta_credito", "codigo_pago": "PAY28989", "fecha": "2025-11-16 23:11:06"}
 {"tipo": "pedido", "codigo": "PED60992", "nombre": "Ayuda", "producto": "café colombiano especial", "cantidad": 4, "total": 4600, "metodo_pago": "transferencia", "nombre_metodo_pago": "📲 Transferencia", "codigo_pago": "PAY23917", "fecha": "2025-11-16 23:24:33", "estado": "completado"}
 {"tipo": "feedback", "calificacion": 5, "usuario": "Ayuda", "pedido": "PED60992", "timestamp": "2025-11-16T23:24:37.066491", "comentario": "Experiencia excelente"}
+{"tipo": "pedido", "codigo": "PED80335", "nombre": "Catálogo", "producto": "café arábica light roast", "cantidad": 5, "total": 5000, "metodo_pago": "transferencia", "nombre_metodo_pago": "📲 Transferencia", "codigo_pago": "PAY45010", "fecha": "2025-11-16 23:34:36", "estado": "completado"}
