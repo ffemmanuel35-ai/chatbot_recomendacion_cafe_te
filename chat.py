@@ -26,8 +26,6 @@ FILE_PATH = "pedidos.jsonl"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 def guardar_pedido_en_github(pedido):
-    """Guarda un pedido como una línea JSON en pedidos.jsonl del repo."""
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -66,6 +64,7 @@ def guardar_pedido_en_github(pedido):
     else:
         st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
 
+
 # -----------------------------------------
 # MEMORIA DE SESIÓN
 # -----------------------------------------
@@ -80,109 +79,27 @@ if "mem" not in st.session_state:
 mem = st.session_state.mem
 
 # -----------------------------------------
-# CATÁLOGO con imágenes CORRECTAS
+# CATÁLOGO (SIN IMÁGENES)
 # -----------------------------------------
 catalogo = {
-    # ☕ CAFÉ — Perfil cítrico
-    "café de colombia": {
-        "tipo": "café",
-        "perfil": "cítrico",
-        "precio": 1200,
-        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80"
-    },
-    "café peruano andes": {
-        "tipo": "café",
-        "perfil": "cítrico",
-        "precio": 1250,
-        "imagen": "https://images.unsplash.com/photo-1461988320302-91bde64fc8e4?auto=format&fit=crop&w=800&q=80"
-    },
+    "café de colombia": {"tipo": "café", "perfil": "cítrico", "precio": 1200},
+    "café peruano andes": {"tipo": "café", "perfil": "cítrico", "precio": 1250},
 
-    # ☕ CAFÉ — Perfil intenso
-    "café espresso italiano": {
-        "tipo": "café",
-        "perfil": "intenso",
-        "precio": 1100,
-        "imagen": "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80"
-    },
-    "café dark roast brasil": {
-        "tipo": "café",
-        "perfil": "intenso",
-        "precio": 1300,
-        "imagen": "https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80"
-    },
+    "café espresso italiano": {"tipo": "café", "perfil": "intenso", "precio": 1100},
+    "café dark roast brasil": {"tipo": "café", "perfil": "intenso", "precio": 1300},
 
-    # ☕ CAFÉ — Perfil suave
-    "café arábica light roast": {
-        "tipo": "café",
-        "perfil": "suave",
-        "precio": 1000,
-        "imagen": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80"
-    },
-    "café colombiano especial": {
-        "tipo": "café",
-        "perfil": "suave",
-        "precio": 1150,
-        "imagen": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=800&q=80"
-    },
+    "café arábica light roast": {"tipo": "café", "perfil": "suave", "precio": 1000},
+    "café colombiano especial": {"tipo": "café", "perfil": "suave", "precio": 1150},
 
-    # 🍵 TÉ — Perfil floral
-    "té blanco con jazmín": {
-        "tipo": "té",
-        "perfil": "floral",
-        "precio": 800,
-        "imagen": "https://images.unsplash.com/photo-1551279130-0b398d605c1c?auto=format&fit=crop&w=800&q=80"
-    },
-    "té oolong floral blend": {
-        "tipo": "té",
-        "perfil": "floral",
-        "precio": 850,
-        "imagen": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=800&q=80"
-    },
+    "té blanco con jazmín": {"tipo": "té", "perfil": "floral", "precio": 800},
+    "té oolong floral blend": {"tipo": "té", "perfil": "floral", "precio": 850},
 
-    # 🍵 TÉ — Perfil dulce
-    "té rooibos con vainilla": {
-        "tipo": "té",
-        "perfil": "dulce",
-        "precio": 750,
-        "imagen": "https://images.unsplash.com/photo-1596568358237-5e6d37d0f9c9?auto=format&fit=crop&w=800&q=80"
-    },
-    "té negro miel & canela": {
-        "tipo": "té",
-        "perfil": "dulce",
-        "precio": 790,
-        "imagen": "https://images.unsplash.com/photo-1603022203159-5e8207e81030?auto=format&fit=crop&w=800&q=80"
-    },
+    "té rooibos con vainilla": {"tipo": "té", "perfil": "dulce", "precio": 750},
+    "té negro miel & canela": {"tipo": "té", "perfil": "dulce", "precio": 790},
 
-    # 🍵 TÉ — Perfil herbal
-    "té verde sencha": {
-        "tipo": "té",
-        "perfil": "herbal",
-        "precio": 780,
-        "imagen": "https://images.unsplash.com/photo-1504547268349-65e31dbf34a1?auto=format&fit=crop&w=800&q=80"
-    },
-    "té menta patagónica": {
-        "tipo": "té",
-        "perfil": "herbal",
-        "precio": 760,
-        "imagen": "https://images.unsplash.com/photo-1505576391880-b3f9d713dc53?auto=format&fit=crop&w=800&q=80"
-    },
+    "té verde sencha": {"tipo": "té", "perfil": "herbal", "precio": 780},
+    "té menta patagónica": {"tipo": "té", "perfil": "herbal", "precio": 760},
 }
-
-# -----------------------------------------
-# MOSTRAR CATÁLOGO
-# -----------------------------------------
-def mostrar_catalogo_con_imagenes():
-    for nombre, datos in catalogo.items():
-        try:
-            st.image(datos["imagen"], width=220)
-        except:
-            st.warning(f"No se pudo cargar la imagen de {nombre}")
-
-        st.markdown(
-            f"### {nombre.title()}\n"
-            f"- Perfil: **{datos['perfil']}**\n"
-            f"- Precio: **${datos['precio']}**\n"
-        )
 
 # -----------------------------------------
 # EXTRACCIÓN DE NOMBRE
@@ -206,6 +123,7 @@ def extraer_nombre(texto):
 
     return None
 
+
 # -----------------------------------------
 # RECOMENDADOR
 # -----------------------------------------
@@ -223,12 +141,14 @@ def recomendar_por_perfil(preferencia, actual=None):
 
     return opciones[0]
 
+
 # -----------------------------------------
 # LÓGICA DEL CHATBOT
 # -----------------------------------------
 def procesar(texto):
     texto_l = texto.lower()
 
+    # 1) Nombre
     if mem["nombre"] is None:
         posible = extraer_nombre(texto)
         if posible:
@@ -236,12 +156,15 @@ def procesar(texto):
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
         return "¿Cómo te llamás?"
 
+    # 2) Mostrar catálogo (sin imágenes)
     if "catálogo" in texto_l or "catalogo" in texto_l:
-        mostrar_catalogo_con_imagenes()
-        return ""
+        cat = "\n".join(
+            [f"- **{n.title()}** — {d['perfil']} — ${d['precio']}" for n, d in catalogo.items()]
+        )
+        return f"📜 **Catálogo disponible:**\n\n{cat}"
 
+    # 3) Preferencias por perfil
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
-
     for p in perfiles:
         if p in texto_l:
             if p == "citric":
@@ -257,6 +180,7 @@ def procesar(texto):
                     f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?"
                 )
 
+    # 4) Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
@@ -271,14 +195,17 @@ def procesar(texto):
                 )
         return "¿Preferís café o té?"
 
+    # 5) Selección por nombre
     for prod in catalogo.keys():
         if prod in texto_l:
             mem["producto_seleccionado"] = prod
             return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
+    # 6) Confirmación
     if texto_l in ["si", "sí", "si quiero", "lo quiero", "lo deseo", "dale", "meta", "quiero"] and mem["producto_seleccionado"]:
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
+    # 7) Cantidad
     if texto_l.isdigit() and mem["producto_seleccionado"]:
         mem["cantidad"] = int(texto_l)
         prod = mem["producto_seleccionado"]
@@ -291,6 +218,7 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
+    # 8) Confirmar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
@@ -316,6 +244,7 @@ def procesar(texto):
             f"Gracias por tu compra ☕✨"
         )
 
+    # 9) Preguntas base
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
 
@@ -328,9 +257,6 @@ def procesar(texto):
 # INTERFAZ
 # -----------------------------------------
 col1, col2 = st.columns(2)
-
-if col1.button("📸 Ver Catálogo con imágenes"):
-    mostrar_catalogo_con_imagenes()
 
 if col2.button("🛒 Comprar"):
     st.markdown("Decime qué producto querés comprar.")
@@ -352,7 +278,3 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
-
-
-
-
