@@ -421,7 +421,7 @@ if col3.button("❓ Ayuda", use_container_width=True):
 # Inicializar historial si no existe
 if "historial" not in st.session_state:
     st.session_state.historial = [
-        {"role": "assistant", "content": "¡Hola! Soy tu asistente de café y té. ¿En qué puedo ayudarte? 😊"}
+        {"role": "assistant", "content": "¡Hola! Soy tu asistente de café y té. ¿Podrias decirme tu nombre antes de empezar a ayudarte? 😊"}
     ]
 
 # Input de chat
@@ -498,3 +498,4 @@ if mem["estado_pago"] == "pendiente":
             mem["estado_pago"] = None
             mem["metodo_pago"] = None
             st.rerun()
+
