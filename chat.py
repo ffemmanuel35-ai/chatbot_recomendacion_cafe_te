@@ -2,6 +2,9 @@ import streamlit as st
 import sqlite3
 import re
 import random
+import base64
+import json
+import requests
 
 # -----------------------------------------
 # CONFIGURACIÓN STREAMLIT
@@ -15,6 +18,54 @@ Puedo recomendar productos según **sabor**, **intensidad** o **tipo**,
 y puedo recordar tus **preferencias** y **tu nombre**.  
 """)
 
+# -----------------------------------------
+# GUARDADO REMOTO EN GITHUB (JSONL)
+# -----------------------------------------
+
+GITHUB_REPO = "chatbot_recomendacion_cafe_te"
+FILE_PATH = "pedidos/pedidos.jsonl"
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Cargado desde Streamlit Cloud
+
+def guardar_pedido_en_github(pedido):
+    """
+    Guarda un pedido como una línea JSON en un archivo .jsonl del repositorio.
+    Si el archivo no existe, lo crea.
+    """
+
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github+json"
+    }
+
+    # Paso 1: Obtener archivo existente (si existe)
+    resp = requests.get(url, headers=headers)
+
+    if resp.status_code == 200:
+        data = resp.json()
+        sha = data["sha"]  # necesario para actualizar
+        contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
+    else:
+        sha = None
+        contenido_actual = ""
+
+    # Paso 2: Agregar nueva línea JSON
+    nueva_linea = json.dumps(pedido, ensure_ascii=False)
+    nuevo_contenido = contenido_actual + nueva_linea + "\n"
+
+    # Paso 3: Subir el archivo actualizado
+    update_data = {
+        "message": "Nuevo pedido agregado",
+        "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8"),
+        "sha": sha
+    }
+
+    update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
+
+    if update_resp.status_code in [200, 201]:
+        print("Pedido guardado en GitHub correctamente.")
+    else:
+        print("Error al guardar en GitHub:", update_resp.text)
 
 # -----------------------------------------
 # BASE DE DATOS SQLITE
@@ -217,17 +268,23 @@ def procesar(texto):
             total = precio * cantidad
             codigo = f"PED{random.randint(10000,99999)}"
 
-            guardar_pedido(codigo, mem["nombre"], prod, cantidad, total)
+        guardar_pedido_en_github({
+            "codigo": codigo,
+            "nombre": mem["nombre"],
+            "producto": prod,
+            "cantidad": cantidad,
+            "total": total
+        })
 
-            # Reset
-            mem["producto_seleccionado"] = None
-            mem["cantidad"] = None
+        mem["producto_seleccionado"] = None
+        mem["cantidad"] = None
 
-            return (
-                f"✅ **Compra confirmada, {mem['nombre']}!**\n"
-                f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
-                f"Gracias por tu compra ☕✨"
-            )
+        return (
+            f"✅ **Compra confirmada, {mem['nombre']}!**\n"
+            f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
+            f"Gracias por tu compra ☕✨"
+        )
+
 
     # 9. Intenciones principales
     if "café" in texto_l or "cafe" in texto_l:
