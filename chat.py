@@ -83,7 +83,7 @@ if "mem" not in st.session_state:
 mem = st.session_state.mem
 
 # -----------------------------------------
-# CATÁLOGO con imágenes
+# CATÁLOGO con imágenes (URLs corregidas)
 # -----------------------------------------
 catalogo = {
     # ☕ CAFÉ — Perfil cítrico
@@ -91,13 +91,13 @@ catalogo = {
         "tipo": "café",
         "perfil": "cítrico",
         "precio": 1200,
-        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93"
+        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80"
     },
     "café peruano andes": {
         "tipo": "café",
         "perfil": "cítrico",
         "precio": 1250,
-        "imagen": "https://images.unsplash.com/photo-1520971342232-7da1c9a9112a"
+        "imagen": "https://images.unsplash.com/photo-1520971342232-7da1c9a9112a?auto=format&fit=crop&w=800&q=80"
     },
 
     # ☕ CAFÉ — Perfil intenso
@@ -105,13 +105,13 @@ catalogo = {
         "tipo": "café",
         "perfil": "intenso",
         "precio": 1100,
-        "imagen": "https://images.unsplash.com/photo-1511920170033-f8396924c348"
+        "imagen": "https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80"
     },
     "café dark roast brasil": {
         "tipo": "café",
         "perfil": "intenso",
         "precio": 1300,
-        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93"
+        "imagen": "https://images.unsplash.com/photo-1529070538774-1843cb3265df?auto=format&fit=crop&w=800&q=80"
     },
 
     # ☕ CAFÉ — Perfil suave
@@ -119,13 +119,13 @@ catalogo = {
         "tipo": "café",
         "perfil": "suave",
         "precio": 1000,
-        "imagen": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+        "imagen": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80"
     },
     "café colombiano especial": {
         "tipo": "café",
         "perfil": "suave",
         "precio": 1150,
-        "imagen": "https://images.unsplash.com/photo-1442512595331-e89e73853f31"
+        "imagen": "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=800&q=80"
     },
 
     # 🍵 TÉ — Perfil floral
@@ -133,13 +133,13 @@ catalogo = {
         "tipo": "té",
         "perfil": "floral",
         "precio": 800,
-        "imagen": "https://images.unsplash.com/photo-1505579168101-4f0a919a8a3d"
+        "imagen": "https://images.unsplash.com/photo-1505579168101-4f0a919a8a3d?auto=format&fit=crop&w=800&q=80"
     },
     "té oolong floral blend": {
         "tipo": "té",
         "perfil": "floral",
         "precio": 850,
-        "imagen": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad"
+        "imagen": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=800&q=80"
     },
 
     # 🍵 TÉ — Perfil dulce
@@ -147,13 +147,13 @@ catalogo = {
         "tipo": "té",
         "perfil": "dulce",
         "precio": 750,
-        "imagen": "https://images.unsplash.com/photo-1505576391880-b3f9d713dc53"
+        "imagen": "https://images.unsplash.com/photo-1505576391880-b3f9d713dc53?auto=format&fit=crop&w=800&q=80"
     },
     "té negro miel & canela": {
         "tipo": "té",
         "perfil": "dulce",
         "precio": 790,
-        "imagen": "https://images.unsplash.com/photo-1544048911-f5a8f6f1a9b3"
+        "imagen": "https://images.unsplash.com/photo-1513639725746-c5d3e861f32d?auto=format&fit=crop&w=800&q=80"
     },
 
     # 🍵 TÉ — Perfil herbal
@@ -161,15 +161,16 @@ catalogo = {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 780,
-        "imagen": "https://images.unsplash.com/photo-1497534446932-c925b458314e"
+        "imagen": "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=800&q=80"
     },
     "té menta patagónica": {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 760,
-        "imagen": "https://images.unsplash.com/photo-1518976024611-28bf1f35b5d1"
+        "imagen": "https://images.unsplash.com/photo-1518976024611-28bf1f35b5d1?auto=format&fit=crop&w=800&q=80"
     },
 }
+
 
 
 def mostrar_catalogo_con_imagenes():
@@ -362,6 +363,7 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
 
