@@ -172,11 +172,15 @@ catalogo = {
 }
 
 
-def mostrar_catalogo():
-    texto = "### 📜 Catálogo disponible:\n"
+def mostrar_catalogo_con_imagenes():
     for nombre, datos in catalogo.items():
-        texto += f"- **{nombre.title()}** — {datos['perfil']} — **${datos['precio']}**\n"
-    return texto
+        st.image(datos["imagen"], width=200)
+        st.markdown(
+            f"### {nombre.title()}\n"
+            f"- Perfil: **{datos['perfil']}**\n"
+            f"- Precio: **${datos['precio']}**\n"
+        )
+
 
 # -----------------------------------------
 # EXTRACCIÓN DE NOMBRE
@@ -335,8 +339,8 @@ def procesar(texto):
 
 col1, col2 = st.columns(2)
 
-if col1.button("📜 Ver Catálogo"):
-    st.markdown(mostrar_catalogo())
+if col1.button("📸 Ver Catálogo con imágenes"):
+    mostrar_catalogo_con_imagenes()
 
 if col2.button("🛒 Comprar"):
     st.markdown("Decime qué producto querés comprar.")
@@ -358,4 +362,5 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
