@@ -64,44 +64,10 @@ def guardar_pedido_en_github(pedido):
         st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
 
 # -----------------------------------------
-# SISTEMA DE FEEDBACK
+# SISTEMA DE FEEDBACK LOCAL (NO SE GUARDA EN JSON)
 # -----------------------------------------
-def guardar_feedback_en_github(feedback_data):
-    """Guarda feedback en el mismo archivo de pedidos"""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github+json"
-    }
-
-    resp = requests.get(url, headers=headers)
-
-    if resp.status_code == 200:
-        data = resp.json()
-        sha = data["sha"]
-        contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
-    elif resp.status_code == 404:
-        sha = None
-        contenido_actual = ""
-    else:
-        return False
-
-    nueva_linea = json.dumps(feedback_data, ensure_ascii=False)
-    nuevo_contenido = contenido_actual.rstrip() + "\n" + nueva_linea + "\n"
-
-    update_data = {
-        "message": f"Nuevo feedback - {feedback_data.get('usuario', 'Anónimo')}",
-        "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8")
-    }
-
-    if sha:
-        update_data["sha"] = sha
-
-    update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
-    return update_resp.status_code in (200, 201)
-
 def mostrar_sistema_feedback():
-    """Muestra el sistema de feedback después de una compra"""
+    """Muestra el sistema de feedback después de una compra - SOLO LOCAL"""
     if st.session_state.mem.get("mostrar_feedback"):
         st.markdown("---")
         st.markdown("### 📊 ¿Cómo calificarías tu experiencia?")
@@ -110,24 +76,27 @@ def mostrar_sistema_feedback():
         
         with col1:
             if st.button("⭐", use_container_width=True, key="fb1"):
-                guardar_feedback(1)
+                procesar_feedback(1)
         with col2:
             if st.button("⭐⭐", use_container_width=True, key="fb2"):
-                guardar_feedback(2)
+                procesar_feedback(2)
         with col3:
             if st.button("⭐⭐⭐", use_container_width=True, key="fb3"):
-                guardar_feedback(3)
+                procesar_feedback(3)
         with col4:
             if st.button("⭐⭐⭐⭐", use_container_width=True, key="fb4"):
-                guardar_feedback(4)
+                procesar_feedback(4)
         with col5:
             if st.button("⭐⭐⭐⭐⭐", use_container_width=True, key="fb5"):
-                guardar_feedback(5)
+                procesar_feedback(5)
 
-def guardar_feedback(calificacion):
-    """Guarda el feedback del usuario"""
-    feedback_data = {
-        "tipo": "feedback",
+def procesar_feedback(calificacion):
+    """Procesa el feedback del usuario - SOLO EN MEMORIA LOCAL"""
+    # Guardar feedback solo en memoria de sesión (no en GitHub)
+    if "feedback_data" not in st.session_state:
+        st.session_state.feedback_data = []
+    
+    feedback_local = {
         "calificacion": calificacion,
         "usuario": st.session_state.mem.get("nombre", "Anónimo"),
         "pedido": st.session_state.mem.get("ultimo_pedido", "N/A"),
@@ -135,12 +104,19 @@ def guardar_feedback(calificacion):
         "comentario": obtener_comentario_automatico(calificacion)
     }
     
-    if guardar_feedback_en_github(feedback_data):
-        st.success(f"¡Gracias por tu feedback de {calificacion} estrella{'s' if calificacion > 1 else ''}! 💫")
-        st.session_state.mem["mostrar_feedback"] = False
-        st.rerun()
-    else:
-        st.info("¡Gracias por tu feedback! 💖")
+    st.session_state.feedback_data.append(feedback_local)
+    
+    # Mostrar mensaje de agradecimiento
+    mensajes_agradecimiento = [
+        f"¡Gracias por tu feedback de {calificacion} estrella{'s' if calificacion > 1 else ''}! 💫",
+        f"¡Valoramos tu opinión de {calificacion} estrella{'s' if calificacion > 1 else ''}! 🌟",
+        f"¡Agradecemos tus {calificacion} estrella{'s' if calificacion > 1 else ''}! ✨",
+        f"¡Tu feedback de {calificacion} estrella{'s' if calificacion > 1 else ''} nos ayuda a mejorar! 🚀"
+    ]
+    
+    st.success(random.choice(mensajes_agradecimiento))
+    st.session_state.mem["mostrar_feedback"] = False
+    st.rerun()
 
 def obtener_comentario_automatico(calificacion):
     """Genera un comentario automático basado en la calificación"""
@@ -152,6 +128,21 @@ def obtener_comentario_automatico(calificacion):
         5: "Experiencia excelente"
     }
     return comentarios.get(calificacion, "Sin comentario")
+
+def mostrar_estadisticas_feedback():
+    """Muestra estadísticas del feedback local (solo para demostración)"""
+    if hasattr(st.session_state, 'feedback_data') and st.session_state.feedback_data:
+        st.markdown("---")
+        st.markdown("### 📈 Estadísticas de Feedback (Local)")
+        total_feedback = len(st.session_state.feedback_data)
+        promedio = sum(fb['calificacion'] for fb in st.session_state.feedback_data) / total_feedback
+        
+        st.write(f"**Total de valoraciones:** {total_feedback}")
+        st.write(f"**Calificación promedio:** {promedio:.1f} ⭐")
+        
+        # Mostrar último feedback
+        ultimo_fb = st.session_state.feedback_data[-1]
+        st.write(f"**Última valoración:** {ultimo_fb['calificacion']} estrellas - {ultimo_fb['comentario']}")
 
 # -----------------------------------------
 # SISTEMA DE MÉTODOS DE PAGO
@@ -404,11 +395,10 @@ def procesar(texto):
 # INTERFAZ MEJORADA - BOTONES FUNCIONALES
 # -----------------------------------------
 
-# Botones de acción rápida - CORREGIDOS
+# Botones de acción rápida
 col1, col2, col3 = st.columns(3)
 
 if col1.button("📜 Ver Catálogo", use_container_width=True):
-    # Agregar mensaje y procesar inmediatamente
     st.session_state.historial.append({"role": "user", "content": "catálogo"})
     respuesta = procesar("catálogo")
     st.session_state.historial.append({"role": "assistant", "content": respuesta})
@@ -508,6 +498,10 @@ if mem["estado_pago"] == "pendiente":
             st.rerun()
 
 # -----------------------------------------
-# SISTEMA DE FEEDBACK (ABAJO DE TODO)
+# SISTEMA DE FEEDBACK LOCAL (ABAJO DE TODO)
 # -----------------------------------------
 mostrar_sistema_feedback()
+
+# Opcional: Mostrar estadísticas de feedback local (solo para desarrollo/demo)
+if st.checkbox("📊 Mostrar estadísticas de feedback (solo desarrollo)"):
+    mostrar_estadisticas_feedback()
