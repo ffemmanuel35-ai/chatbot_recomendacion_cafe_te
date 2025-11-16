@@ -175,7 +175,11 @@ catalogo = {
 
 def mostrar_catalogo_con_imagenes():
     for nombre, datos in catalogo.items():
-        st.image(datos["imagen"], width=200)
+        try:
+            st.image(datos["imagen"], width=220)
+        except:
+            st.warning(f"No se pudo cargar la imagen de {nombre}")
+
         st.markdown(
             f"### {nombre.title()}\n"
             f"- Perfil: **{datos['perfil']}**\n"
@@ -363,6 +367,7 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
 
