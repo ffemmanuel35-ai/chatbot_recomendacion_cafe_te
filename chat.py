@@ -83,17 +83,94 @@ if "mem" not in st.session_state:
 mem = st.session_state.mem
 
 # -----------------------------------------
-# CATÁLOGO
+# CATÁLOGO con imágenes
 # -----------------------------------------
 catalogo = {
-    "café de colombia": {"tipo": "café", "perfil": "cítrico", "precio": 1200},
-    "café espresso italiano": {"tipo": "café", "perfil": "intenso", "precio": 1100},
-    "café arábica light roast": {"tipo": "café", "perfil": "suave", "precio": 1000},
+    # ☕ CAFÉ — Perfil cítrico
+    "café de colombia": {
+        "tipo": "café",
+        "perfil": "cítrico",
+        "precio": 1200,
+        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93"
+    },
+    "café peruano andes": {
+        "tipo": "café",
+        "perfil": "cítrico",
+        "precio": 1250,
+        "imagen": "https://images.unsplash.com/photo-1520971342232-7da1c9a9112a"
+    },
 
-    "té blanco con jazmín": {"tipo": "té", "perfil": "floral", "precio": 800},
-    "té rooibos con vainilla": {"tipo": "té", "perfil": "dulce", "precio": 750},
-    "té verde sencha": {"tipo": "té", "perfil": "herbal", "precio": 780},
+    # ☕ CAFÉ — Perfil intenso
+    "café espresso italiano": {
+        "tipo": "café",
+        "perfil": "intenso",
+        "precio": 1100,
+        "imagen": "https://images.unsplash.com/photo-1511920170033-f8396924c348"
+    },
+    "café dark roast brasil": {
+        "tipo": "café",
+        "perfil": "intenso",
+        "precio": 1300,
+        "imagen": "https://images.unsplash.com/photo-1509042239860-f550ce710b93"
+    },
+
+    # ☕ CAFÉ — Perfil suave
+    "café arábica light roast": {
+        "tipo": "café",
+        "perfil": "suave",
+        "precio": 1000,
+        "imagen": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+    },
+    "café colombiano especial": {
+        "tipo": "café",
+        "perfil": "suave",
+        "precio": 1150,
+        "imagen": "https://images.unsplash.com/photo-1442512595331-e89e73853f31"
+    },
+
+    # 🍵 TÉ — Perfil floral
+    "té blanco con jazmín": {
+        "tipo": "té",
+        "perfil": "floral",
+        "precio": 800,
+        "imagen": "https://images.unsplash.com/photo-1505579168101-4f0a919a8a3d"
+    },
+    "té oolong floral blend": {
+        "tipo": "té",
+        "perfil": "floral",
+        "precio": 850,
+        "imagen": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad"
+    },
+
+    # 🍵 TÉ — Perfil dulce
+    "té rooibos con vainilla": {
+        "tipo": "té",
+        "perfil": "dulce",
+        "precio": 750,
+        "imagen": "https://images.unsplash.com/photo-1505576391880-b3f9d713dc53"
+    },
+    "té negro miel & canela": {
+        "tipo": "té",
+        "perfil": "dulce",
+        "precio": 790,
+        "imagen": "https://images.unsplash.com/photo-1544048911-f5a8f6f1a9b3"
+    },
+
+    # 🍵 TÉ — Perfil herbal
+    "té verde sencha": {
+        "tipo": "té",
+        "perfil": "herbal",
+        "precio": 780,
+        "imagen": "https://images.unsplash.com/photo-1497534446932-c925b458314e"
+    },
+    "té menta patagónica": {
+        "tipo": "té",
+        "perfil": "herbal",
+        "precio": 760,
+        "imagen": "https://images.unsplash.com/photo-1518976024611-28bf1f35b5d1"
+    },
 }
+
 
 def mostrar_catalogo():
     texto = "### 📜 Catálogo disponible:\n"
@@ -199,7 +276,7 @@ def procesar(texto):
             return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
     # 6. Confirmación después de la recomendación
-    if texto_l in ["si", "sí", "ok", "dale", "quiero"] and mem["producto_seleccionado"]:
+    if texto_l in ["si","si quiero","lo quiero","lo deseo","meta","sí", "ok", "dale", "quiero"] and mem["producto_seleccionado"]:
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
     # 7. Cantidad
@@ -281,3 +358,4 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
