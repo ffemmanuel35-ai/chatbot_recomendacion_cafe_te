@@ -1,5 +1,4 @@
 import streamlit as st
-import sqlite3
 import re
 import random
 import base64
@@ -20,87 +19,55 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 """)
 
 # -----------------------------------------
-# GUARDADO REMOTO EN GITHUB (JSONL)
+# CONFIGURACIÓN GITHUB PARA GUARDAR PEDIDOS
 # -----------------------------------------
-
-# 🚨 TU REPO REAL
 GITHUB_REPO = "ffemmanuel35-ai/chatbot_recomendacion_cafe_te"
-FILE_PATH = "pedidos.json"  # Tu archivo pedidos.json
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
+FILE_PATH = "pedidos.jsonl"     # JSON Lines
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 def guardar_pedido_en_github(pedido):
-    """Guarda un pedido en una nueva línea del archivo pedidos.json (formato JSONL)."""
+    """Guarda un pedido como una línea JSON en pedidos.jsonl del repo."""
+    
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json"
     }
 
-    # Intentar obtener el archivo
+    # 1. Intentar obtener el archivo
     resp = requests.get(url, headers=headers)
 
     if resp.status_code == 200:
-        # Archivo existe
         data = resp.json()
         sha = data["sha"]
         contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
     elif resp.status_code == 404:
-        # Archivo no existe, se creará
         sha = None
         contenido_actual = ""
-        st.info("Archivo no encontrado, se creará uno nuevo en el repo.")
+        st.info("📄 Archivo creado automáticamente en GitHub (pedidos.jsonl).")
     else:
-        st.error(f"Error al acceder al archivo en GitHub: {resp.status_code}")
+        st.error(f"Error al acceder al archivo: {resp.text}")
         return
 
-    # Agregar nuevo pedido en una nueva línea (formato JSONL)
+    # 2. Agregar nueva línea en JSONL
     nueva_linea = json.dumps(pedido, ensure_ascii=False)
-    
-    # Si el archivo no está vacío, agregar salto de línea antes del nuevo pedido
-    if contenido_actual.strip():
-        # Limpiar el contenido actual (eliminar espacios en blanco al final)
-        contenido_actual = contenido_actual.rstrip()
-        nuevo_contenido = contenido_actual + "\n" + nueva_linea + "\n"
-    else:
-        nuevo_contenido = nueva_linea + "\n"
+    nuevo_contenido = contenido_actual.rstrip() + "\n" + nueva_linea + "\n"
 
-    # Crear body para la actualización
+    # 3. Construir payload para actualizar archivo
     update_data = {
         "message": f"Nuevo pedido agregado - {pedido['codigo']}",
-        "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8"),
+        "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8")
     }
 
     if sha:
         update_data["sha"] = sha
 
-    # Subir archivo
     update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
 
     if update_resp.status_code in (200, 201):
-        st.success("✅ Pedido guardado en GitHub correctamente.")
+        st.success("✅ Pedido guardado correctamente en GitHub.")
     else:
         st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
-
-# -----------------------------------------
-# BASE DE DATOS SQLITE (local) - OPCIONAL
-# -----------------------------------------
-def init_db():
-    conn = sqlite3.connect("pedidos.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS pedidos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            codigo TEXT,
-            nombre TEXT,
-            producto TEXT,
-            cantidad INTEGER,
-            total REAL
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-init_db()
 
 # -----------------------------------------
 # MEMORIA DE SESIÓN
@@ -135,7 +102,7 @@ def mostrar_catalogo():
     return texto
 
 # -----------------------------------------
-# DETECTOR DE NOMBRE
+# EXTRACCIÓN DE NOMBRE
 # -----------------------------------------
 def extraer_nombre(texto):
     texto = texto.strip()
@@ -157,7 +124,7 @@ def extraer_nombre(texto):
     return None
 
 # -----------------------------------------
-# RECOMENDACIÓN POR PERFIL
+# RECOMENDADOR
 # -----------------------------------------
 def recomendar_por_perfil(preferencia, actual=None):
     preferencia = preferencia.lower()
@@ -175,7 +142,7 @@ def recomendar_por_perfil(preferencia, actual=None):
     return opciones[0]
 
 # -----------------------------------------
-# LÓGICA PRINCIPAL
+# LÓGICA DEL CHATBOT
 # -----------------------------------------
 def procesar(texto):
     texto_l = texto.lower()
@@ -188,11 +155,11 @@ def procesar(texto):
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
         return "¿Cómo te llamás?"
 
-    # 2. Ver catálogo
+    # 2. Catálogo
     if "catálogo" in texto_l or "catalogo" in texto_l:
         return mostrar_catalogo()
 
-    # 3. Preferencia sabor
+    # 3. Preferencias por perfil
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
 
     for p in perfiles:
@@ -210,7 +177,7 @@ def procesar(texto):
                     f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?"
                 )
 
-    # 4. Pedir otra opción
+    # 4. Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
@@ -225,14 +192,13 @@ def procesar(texto):
                 )
         return "¿Preferís café o té?"
 
-    # 5. Selección específica
+    # 5. Selección por nombre
     for prod in catalogo.keys():
         if prod in texto_l:
             mem["producto_seleccionado"] = prod
-            precio = catalogo[prod]["precio"]
-            return f"Perfecto {mem['nombre']}. ¿Cuántas unidades de **{prod.title()}** querés?"
+            return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
-    # 6. Confirmación
+    # 6. Confirmación después de la recomendación
     if texto_l in ["si", "sí", "ok", "dale", "quiero"] and mem["producto_seleccionado"]:
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
@@ -249,7 +215,7 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
-    # 8. FINALIZAR COMPRA
+    # 8. Finalizar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
@@ -257,7 +223,7 @@ def procesar(texto):
         total = precio * cantidad
         codigo = f"PED{random.randint(10000,99999)}"
 
-        # Guardar en GitHub (JSONL - una línea por pedido)
+        # Guardar pedido en GitHub
         guardar_pedido_en_github({
             "codigo": codigo,
             "nombre": mem["nombre"],
@@ -267,7 +233,7 @@ def procesar(texto):
             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
 
-        # Limpiar memoria temporal
+        # Limpiar
         mem["producto_seleccionado"] = None
         mem["cantidad"] = None
 
@@ -289,6 +255,7 @@ def procesar(texto):
 # -----------------------------------------
 # INTERFAZ
 # -----------------------------------------
+
 col1, col2 = st.columns(2)
 
 if col1.button("📜 Ver Catálogo"):
@@ -297,7 +264,6 @@ if col1.button("📜 Ver Catálogo"):
 if col2.button("🛒 Comprar"):
     st.markdown("Decime qué producto querés comprar.")
 
-# Chat UI
 if "historial" not in st.session_state:
     st.session_state.historial = [
         {"role": "assistant", "content": "¡Hola! ¿Cómo te llamás?"}
