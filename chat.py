@@ -33,7 +33,6 @@ st.write("¿TOKEN CARGADO?:", "SÍ" if GITHUB_TOKEN else "NO")
 
 def guardar_pedido_en_github(pedido):
     """Guarda un pedido en un archivo .jsonl dentro del repositorio GitHub."""
-
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -44,13 +43,18 @@ def guardar_pedido_en_github(pedido):
     resp = requests.get(url, headers=headers)
 
     if resp.status_code == 200:
+        # Archivo existe
         data = resp.json()
         sha = data["sha"]
         contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
-    else:
-        # Archivo nuevo
+    elif resp.status_code == 404:
+        # Archivo no existe, se creará
         sha = None
         contenido_actual = ""
+        st.info("Archivo no encontrado, se creará uno nuevo en el repo.")
+    else:
+        st.error(f"Error al acceder al archivo en GitHub: {resp.status_code}")
+        return
 
     # Agregar nuevo pedido
     nueva_linea = json.dumps(pedido, ensure_ascii=False)
@@ -62,17 +66,17 @@ def guardar_pedido_en_github(pedido):
         "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8"),
     }
 
-    # Solo incluir SHA si el archivo existía
     if sha:
         update_data["sha"] = sha
 
     # Subir archivo
     update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
 
-    if update_resp.status_code not in (200, 201):
-        st.error("⚠ Error al guardar en GitHub: " + update_resp.text)
+    if update_resp.status_code in (200, 201):
+        st.success("Pedido guardado en GitHub correctamente.")
     else:
-        print("Pedido guardado en GitHub correctamente.")
+        st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
+
 
 
 # -----------------------------------------
@@ -313,6 +317,7 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
 
