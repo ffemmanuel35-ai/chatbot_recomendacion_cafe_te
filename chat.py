@@ -19,20 +19,16 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 """)
 
 # -----------------------------------------
-# GUARDADO REMOTO EN GITHUB (JSONL)
+# GUARDADO REMOTO EN GITHUB (JSON)
 # -----------------------------------------
 
 # 🚨 TU REPO REAL
-GITHUB_REPO = "ffemanuel35-ai/chatbot_recomendacion_cafe_te"
-
-FILE_PATH = "pedidos/pedidos.jsonl"
+GITHUB_REPO = "ffemmanuel35-ai/chatbot_recomendacion_cafe_te"
+FILE_PATH = "pedidos.json"  # Cambiado a tu archivo pedidos.json
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
 
-# PRUEBA: ¿SE CARGÓ EL TOKEN?
-st.write("¿TOKEN CARGADO?:", "SÍ" if GITHUB_TOKEN else "NO")
-
 def guardar_pedido_en_github(pedido):
-    """Guarda un pedido en un archivo .jsonl dentro del repositorio GitHub."""
+    """Guarda un pedido en el archivo pedidos.json dentro del repositorio GitHub."""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -47,22 +43,33 @@ def guardar_pedido_en_github(pedido):
         data = resp.json()
         sha = data["sha"]
         contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
+        
+        # Cargar JSON existente
+        try:
+            pedidos_existentes = json.loads(contenido_actual)
+            if not isinstance(pedidos_existentes, list):
+                pedidos_existentes = [pedidos_existentes]
+        except json.JSONDecodeError:
+            pedidos_existentes = []
+            
     elif resp.status_code == 404:
         # Archivo no existe, se creará
         sha = None
-        contenido_actual = ""
+        pedidos_existentes = []
         st.info("Archivo no encontrado, se creará uno nuevo en el repo.")
     else:
         st.error(f"Error al acceder al archivo en GitHub: {resp.status_code}")
         return
 
-    # Agregar nuevo pedido
-    nueva_linea = json.dumps(pedido, ensure_ascii=False)
-    nuevo_contenido = contenido_actual + nueva_linea + "\n"
+    # Agregar nuevo pedido al array
+    pedidos_existentes.append(pedido)
+    
+    # Convertir a JSON formateado
+    nuevo_contenido = json.dumps(pedidos_existentes, ensure_ascii=False, indent=2)
 
-    # Crear body
+    # Crear body para la actualización
     update_data = {
-        "message": "Nuevo pedido agregado",
+        "message": f"Nuevo pedido agregado - {pedido['codigo']}",
         "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8"),
     }
 
@@ -73,14 +80,12 @@ def guardar_pedido_en_github(pedido):
     update_resp = requests.put(url, headers=headers, data=json.dumps(update_data))
 
     if update_resp.status_code in (200, 201):
-        st.success("Pedido guardado en GitHub correctamente.")
+        st.success("✅ Pedido guardado en GitHub correctamente.")
     else:
         st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
 
-
-
 # -----------------------------------------
-# BASE DE DATOS SQLITE (local)
+# BASE DE DATOS SQLITE (local) - OPCIONAL
 # -----------------------------------------
 def init_db():
     conn = sqlite3.connect("pedidos.db")
@@ -100,7 +105,6 @@ def init_db():
 
 init_db()
 
-
 # -----------------------------------------
 # MEMORIA DE SESIÓN
 # -----------------------------------------
@@ -113,7 +117,6 @@ if "mem" not in st.session_state:
     }
 
 mem = st.session_state.mem
-
 
 # -----------------------------------------
 # CATÁLOGO
@@ -133,7 +136,6 @@ def mostrar_catalogo():
     for nombre, datos in catalogo.items():
         texto += f"- **{nombre.title()}** — {datos['perfil']} — **${datos['precio']}**\n"
     return texto
-
 
 # -----------------------------------------
 # DETECTOR DE NOMBRE
@@ -157,7 +159,6 @@ def extraer_nombre(texto):
 
     return None
 
-
 # -----------------------------------------
 # RECOMENDACIÓN POR PERFIL
 # -----------------------------------------
@@ -175,7 +176,6 @@ def recomendar_por_perfil(preferencia, actual=None):
                 return nombre, datos
 
     return opciones[0]
-
 
 # -----------------------------------------
 # LÓGICA PRINCIPAL
@@ -252,7 +252,7 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
-    # 8. FINALIZAR COMPRA (corregido)
+    # 8. FINALIZAR COMPRA
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
@@ -260,15 +260,17 @@ def procesar(texto):
         total = precio * cantidad
         codigo = f"PED{random.randint(10000,99999)}"
 
-        # Guardar en GitHub
+        # Guardar en GitHub (JSON)
         guardar_pedido_en_github({
             "codigo": codigo,
             "nombre": mem["nombre"],
             "producto": prod,
             "cantidad": cantidad,
-            "total": total
+            "total": total,
+            "fecha": random.randint(100000, 999999)  # timestamp simulado
         })
 
+        # Limpiar memoria temporal
         mem["producto_seleccionado"] = None
         mem["cantidad"] = None
 
@@ -286,7 +288,6 @@ def procesar(texto):
         return "¿Preferís algo floral, herbal o dulce?"
 
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
-
 
 # -----------------------------------------
 # INTERFAZ
@@ -317,9 +318,3 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
-
-
-
-
-
-
