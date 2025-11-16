@@ -94,7 +94,7 @@ catalogo = {
         "tipo": "café",
         "perfil": "cítrico",
         "precio": 1250,
-        "imagen": "https://images.unsplash.com/photo-1520971342232-7da1c9a9112a?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1461988320302-91bde64fc8e4?auto=format&fit=crop&w=800&q=80"
     },
 
     # ☕ CAFÉ — Perfil intenso
@@ -130,7 +130,7 @@ catalogo = {
         "tipo": "té",
         "perfil": "floral",
         "precio": 800,
-        "imagen": "https://images.unsplash.com/photo-1505579168101-4f0a919a8a3d?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1551279130-0b398d605c1c?auto=format&fit=crop&w=800&q=80"
     },
     "té oolong floral blend": {
         "tipo": "té",
@@ -144,13 +144,13 @@ catalogo = {
         "tipo": "té",
         "perfil": "dulce",
         "precio": 750,
-        "imagen": "https://images.unsplash.com/photo-1505576391880-b3f9d713dc53?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1596568358237-5e6d37d0f9c9?auto=format&fit=crop&w=800&q=80"
     },
     "té negro miel & canela": {
         "tipo": "té",
         "perfil": "dulce",
         "precio": 790,
-        "imagen": "https://images.unsplash.com/photo-1513639725746-c5d3e861f32d?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1603022203159-5e8207e81030?auto=format&fit=crop&w=800&q=80"
     },
 
     # 🍵 TÉ — Perfil herbal
@@ -158,13 +158,13 @@ catalogo = {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 780,
-        "imagen": "https://images.unsplash.com/photo-1584270354949-1e4c7fa9cd1d?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1504547268349-65e31dbf34a1?auto=format&fit=crop&w=800&q=80"
     },
     "té menta patagónica": {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 760,
-        "imagen": "https://unsplash.com/es/fotos/taza-de-te-en-el-suelo-en-la-naturaleza-KUxNLWPSneA?auto=format&fit=crop&w=800&q=80"
+        "imagen": ""https://images.unsplash.com/photo-1505576391880-b3f9d713dc53?auto=format&fit=crop&w=800&q=80"
     },
 }
 
@@ -352,4 +352,5 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
