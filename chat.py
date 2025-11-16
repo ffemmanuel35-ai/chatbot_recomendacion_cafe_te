@@ -164,7 +164,7 @@ catalogo = {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 760,
-        "imagen": "https://images.unsplash.com/photo-1518976024611-28bf1f35b5d1?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://unsplash.com/es/fotos/taza-de-te-en-el-suelo-en-la-naturaleza-KUxNLWPSneA?auto=format&fit=crop&w=800&q=80"
     },
 }
 
@@ -352,3 +352,4 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
