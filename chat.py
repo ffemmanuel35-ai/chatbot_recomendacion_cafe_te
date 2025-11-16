@@ -22,7 +22,7 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 # CONFIGURACIÓN GITHUB PARA GUARDAR PEDIDOS
 # -----------------------------------------
 GITHUB_REPO = "ffemmanuel35-ai/chatbot_recomendacion_cafe_te"
-FILE_PATH = "pedidos.jsonl"     # JSON Lines
+FILE_PATH = "pedidos.jsonl"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 def guardar_pedido_en_github(pedido):
@@ -34,7 +34,6 @@ def guardar_pedido_en_github(pedido):
         "Accept": "application/vnd.github+json"
     }
 
-    # 1. Intentar obtener el archivo
     resp = requests.get(url, headers=headers)
 
     if resp.status_code == 200:
@@ -49,11 +48,9 @@ def guardar_pedido_en_github(pedido):
         st.error(f"Error al acceder al archivo: {resp.text}")
         return
 
-    # 2. Agregar nueva línea en JSONL
     nueva_linea = json.dumps(pedido, ensure_ascii=False)
     nuevo_contenido = contenido_actual.rstrip() + "\n" + nueva_linea + "\n"
 
-    # 3. Construir payload para actualizar archivo
     update_data = {
         "message": f"Nuevo pedido agregado - {pedido['codigo']}",
         "content": base64.b64encode(nuevo_contenido.encode("utf-8")).decode("utf-8")
@@ -83,7 +80,7 @@ if "mem" not in st.session_state:
 mem = st.session_state.mem
 
 # -----------------------------------------
-# CATÁLOGO con imágenes (URLs corregidas)
+# CATÁLOGO con imágenes CORRECTAS
 # -----------------------------------------
 catalogo = {
     # ☕ CAFÉ — Perfil cítrico
@@ -161,7 +158,7 @@ catalogo = {
         "tipo": "té",
         "perfil": "herbal",
         "precio": 780,
-        "imagen": "https://images.unsplash.com/photo-1497534446932-c925b458314e?auto=format&fit=crop&w=800&q=80"
+        "imagen": "https://images.unsplash.com/photo-1584270354949-1e4c7fa9cd1d?auto=format&fit=crop&w=800&q=80"
     },
     "té menta patagónica": {
         "tipo": "té",
@@ -171,8 +168,9 @@ catalogo = {
     },
 }
 
-
-
+# -----------------------------------------
+# MOSTRAR CATÁLOGO
+# -----------------------------------------
 def mostrar_catalogo_con_imagenes():
     for nombre, datos in catalogo.items():
         try:
@@ -185,7 +183,6 @@ def mostrar_catalogo_con_imagenes():
             f"- Perfil: **{datos['perfil']}**\n"
             f"- Precio: **${datos['precio']}**\n"
         )
-
 
 # -----------------------------------------
 # EXTRACCIÓN DE NOMBRE
@@ -214,7 +211,6 @@ def extraer_nombre(texto):
 # -----------------------------------------
 def recomendar_por_perfil(preferencia, actual=None):
     preferencia = preferencia.lower()
-
     opciones = [(n, d) for n, d in catalogo.items() if preferencia in d["perfil"].lower()]
 
     if not opciones:
@@ -233,7 +229,6 @@ def recomendar_por_perfil(preferencia, actual=None):
 def procesar(texto):
     texto_l = texto.lower()
 
-    # 1. Nombre
     if mem["nombre"] is None:
         posible = extraer_nombre(texto)
         if posible:
@@ -241,12 +236,10 @@ def procesar(texto):
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
         return "¿Cómo te llamás?"
 
-    # 2. Catálogo
     if "catálogo" in texto_l or "catalogo" in texto_l:
-       mostrar_catalogo_con_imagenes()
-       return ""
+        mostrar_catalogo_con_imagenes()
+        return ""
 
-    # 3. Preferencias por perfil
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
 
     for p in perfiles:
@@ -264,7 +257,6 @@ def procesar(texto):
                     f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?"
                 )
 
-    # 4. Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
@@ -279,17 +271,14 @@ def procesar(texto):
                 )
         return "¿Preferís café o té?"
 
-    # 5. Selección por nombre
     for prod in catalogo.keys():
         if prod in texto_l:
             mem["producto_seleccionado"] = prod
             return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
-    # 6. Confirmación después de la recomendación
-    if texto_l in ["si","si quiero","lo quiero","lo deseo","meta","sí", "ok", "dale", "quiero"] and mem["producto_seleccionado"]:
+    if texto_l in ["si", "sí", "si quiero", "lo quiero", "lo deseo", "dale", "meta", "quiero"] and mem["producto_seleccionado"]:
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
-    # 7. Cantidad
     if texto_l.isdigit() and mem["producto_seleccionado"]:
         mem["cantidad"] = int(texto_l)
         prod = mem["producto_seleccionado"]
@@ -302,7 +291,6 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
-    # 8. Finalizar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
@@ -310,7 +298,6 @@ def procesar(texto):
         total = precio * cantidad
         codigo = f"PED{random.randint(10000,99999)}"
 
-        # Guardar pedido en GitHub
         guardar_pedido_en_github({
             "codigo": codigo,
             "nombre": mem["nombre"],
@@ -320,7 +307,6 @@ def procesar(texto):
             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
 
-        # Limpiar
         mem["producto_seleccionado"] = None
         mem["cantidad"] = None
 
@@ -330,7 +316,6 @@ def procesar(texto):
             f"Gracias por tu compra ☕✨"
         )
 
-    # 9. Preguntas base
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
 
@@ -342,7 +327,6 @@ def procesar(texto):
 # -----------------------------------------
 # INTERFAZ
 # -----------------------------------------
-
 col1, col2 = st.columns(2)
 
 if col1.button("📸 Ver Catálogo con imágenes"):
@@ -368,9 +352,3 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
-
-
-
-
-
-
