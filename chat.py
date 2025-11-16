@@ -68,9 +68,9 @@ def guardar_pedido_en_github(pedido):
 # SISTEMA DE FEEDBACK
 # -----------------------------------------
 def guardar_feedback_en_github(feedback_data):
-    """Guarda feedback en archivo separado en GitHub"""
-    feedback_file = "feedback.jsonl"
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{feedback_file}"
+    """Guarda feedback en el mismo archivo de pedidos"""
+    # Usamos el mismo archivo para mantener todo junto
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github+json"
@@ -86,7 +86,7 @@ def guardar_feedback_en_github(feedback_data):
         sha = None
         contenido_actual = ""
     else:
-        return False  # No mostrar error para feedback
+        return False
 
     nueva_linea = json.dumps(feedback_data, ensure_ascii=False)
     nuevo_contenido = contenido_actual.rstrip() + "\n" + nueva_linea + "\n"
@@ -104,7 +104,7 @@ def guardar_feedback_en_github(feedback_data):
 
 def mostrar_sistema_feedback():
     """Muestra el sistema de feedback después de una compra"""
-    if st.session_state.mem.get("compra_realizada"):
+    if st.session_state.mem.get("mostrar_feedback"):
         st.markdown("---")
         st.markdown("### 📊 ¿Cómo calificarías tu experiencia?")
         
@@ -129,6 +129,7 @@ def mostrar_sistema_feedback():
 def guardar_feedback(calificacion):
     """Guarda el feedback del usuario"""
     feedback_data = {
+        "tipo": "feedback",
         "calificacion": calificacion,
         "usuario": st.session_state.mem.get("nombre", "Anónimo"),
         "pedido": st.session_state.mem.get("ultimo_pedido", "N/A"),
@@ -138,7 +139,8 @@ def guardar_feedback(calificacion):
     
     if guardar_feedback_en_github(feedback_data):
         st.success(f"¡Gracias por tu feedback de {calificacion} estrella{'s' if calificacion > 1 else ''}! 💫")
-        st.session_state.mem["compra_realizada"] = False
+        st.session_state.mem["mostrar_feedback"] = False
+        st.rerun()
     else:
         st.info("¡Gracias por tu feedback! 💖")
 
@@ -160,24 +162,37 @@ METODOS_PAGO = {
     "tarjeta_credito": {
         "nombre": "💳 Tarjeta de Crédito",
         "instrucciones": "Procesamiento seguro con MercadoPago",
-        "requiere_datos": True
+        "requiere_datos": True,
+        "palabras_clave": ["credito", "crédito", "tarjeta credito", "tarjeta crédito"]
     },
     "tarjeta_debito": {
         "nombre": "💳 Tarjeta de Débito", 
         "instrucciones": "Pago inmediato con cualquier banco",
-        "requiere_datos": True
+        "requiere_datos": True,
+        "palabras_clave": ["debito", "débito", "tarjeta debito", "tarjeta débito"]
     },
     "transferencia": {
         "nombre": "📲 Transferencia",
         "instrucciones": "CBU: 0000000000000000000 - Alias: tienda.cafe.te",
-        "requiere_datos": False
+        "requiere_datos": False,
+        "palabras_clave": ["transferencia", "transferir", "cbu", "alias"]
     },
     "billetera_virtual": {
         "nombre": "📱 Billetera Virtual",
         "instrucciones": "MercadoPago, Ualá, o Modo",
-        "requiere_datos": False
+        "requiere_datos": False,
+        "palabras_clave": ["billetera", "virtual", "mercadopago", "uala", "modo"]
     }
 }
+
+def detectar_metodo_pago(texto):
+    """Detecta el método de pago desde el texto del usuario"""
+    texto = texto.lower()
+    for metodo_id, metodo_data in METODOS_PAGO.items():
+        for palabra in metodo_data["palabras_clave"]:
+            if palabra in texto:
+                return metodo_id
+    return None
 
 def mostrar_metodos_pago():
     """Muestra la interfaz de selección de métodos de pago"""
@@ -187,7 +202,7 @@ def mostrar_metodos_pago():
         "Elegí cómo querés pagar:",
         options=list(METODOS_PAGO.keys()),
         format_func=lambda x: METODOS_PAGO[x]["nombre"],
-        key="metodo_pago"
+        key="metodo_pago_seleccionado"
     )
     
     # Mostrar instrucciones del método seleccionado
@@ -236,8 +251,9 @@ if "mem" not in st.session_state:
         "cantidad": None,
         "estado_pago": None,  # 'pendiente', 'procesando', 'completado'
         "metodo_pago": None,
-        "compra_realizada": False,
-        "ultimo_pedido": None
+        "mostrar_feedback": False,
+        "ultimo_pedido": None,
+        "total_pendiente": None
     }
 
 mem = st.session_state.mem
@@ -396,21 +412,31 @@ def procesar(texto):
             f"**Cantidad:** {cantidad} unidades\n"
             f"**Total a pagar:** ${total}\n\n"
             f"Ahora necesitamos procesar el pago. "
-            f"Por favor, seleccioná tu método de pago en la sección de abajo. 👇"
+            f"Podés:\n"
+            f"• Seleccionar tu método de pago aquí abajo 👇\n"
+            f"• O decirme: 'tarjeta crédito', 'débito', 'transferencia' o 'billetera virtual'"
         )
 
-    # 9) Procesar pago desde chat
+    # 9) Detección de método de pago por voz
+    if mem["estado_pago"] == "pendiente":
+        metodo_detectado = detectar_metodo_pago(texto_l)
+        if metodo_detectado:
+            mem["metodo_pago"] = metodo_detectado
+            metodo_nombre = METODOS_PAGO[metodo_detectado]["nombre"]
+            return f"✅ Perfecto, seleccionaste: **{metodo_nombre}**. Ahora confirmá el pago usando los controles de abajo. 👇"
+
+    # 10) Procesar pago desde chat
     if texto_l in ["pagar", "procesar pago", "pago"] and mem["estado_pago"] == "pendiente":
         return "Por favor, usá los controles de abajo para seleccionar y confirmar tu método de pago. 👇"
 
-    # 10) Preguntas base
+    # 11) Preguntas base
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
 
     if "té" in texto_l or "te" in texto_l:
         return "¿Preferís algo floral, herbal o dulce?"
 
-    # 11) Ayuda
+    # 12) Ayuda
     if any(palabra in texto_l for palabra in ["ayuda", "help", "qué puedes hacer"]):
         return (
             "**Puedo ayudarte con:**\n\n"
@@ -424,7 +450,7 @@ def procesar(texto):
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
 # -----------------------------------------
-# INTERFAZ MEJORADA
+# INTERFAZ MEJORADA - PAGOS ABAJO DEL CHAT
 # -----------------------------------------
 
 # Botones de acción rápida
@@ -441,50 +467,6 @@ if col2.button("🛒 Comprar"):
 if col3.button("❓ Ayuda"):
     st.session_state.historial.append({"role": "user", "content": "ayuda"})
     st.rerun()
-
-# Sección de pago si hay pedido pendiente
-if mem["estado_pago"] == "pendiente":
-    st.markdown("---")
-    st.markdown("### 💳 Procesar Pago")
-    
-    metodo = mostrar_metodos_pago()
-    
-    if st.button("✅ Confirmar Pago", type="primary"):
-        with st.spinner("Procesando tu pago..."):
-            # Simular procesamiento de pago
-            resultado = procesar_pago(metodo, mem["total_pendiente"])
-            
-            if resultado["exitoso"]:
-                # Completar la compra
-                codigo_pedido = f"PED{random.randint(10000,99999)}"
-                
-                guardar_pedido_en_github({
-                    "codigo": codigo_pedido,
-                    "nombre": mem["nombre"],
-                    "producto": mem["producto_seleccionado"],
-                    "cantidad": mem["cantidad"],
-                    "total": mem["total_pendiente"],
-                    "metodo_pago": metodo,
-                    "codigo_pago": resultado["codigo"],
-                    "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                })
-                
-                # Actualizar estado
-                mem.update({
-                    "producto_seleccionado": None,
-                    "cantidad": None,
-                    "estado_pago": "completado",
-                    "compra_realizada": True,
-                    "ultimo_pedido": codigo_pedido
-                })
-                
-                st.success(f"✅ **¡Pago exitoso!** Pedido **{codigo_pedido}** confirmado.")
-                st.balloons()
-                
-                # Forzar rerun para mostrar feedback
-                st.rerun()
-            else:
-                st.error("❌ El pago no pudo procesarse. Intentá nuevamente.")
 
 # Chat interface
 if "historial" not in st.session_state:
@@ -506,6 +488,79 @@ for msg in st.session_state.historial:
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
 
-# Mostrar sistema de feedback después de compra
-if mem.get("compra_realizada"):
-    mostrar_sistema_feedback()
+# -----------------------------------------
+# SECCIÓN DE PAGOS (ABAJO DEL CHAT)
+# -----------------------------------------
+if mem["estado_pago"] == "pendiente":
+    st.markdown("---")
+    st.markdown("## 💳 Procesar Pago")
+    
+    # Si ya se detectó un método por chat, lo preseleccionamos
+    metodo_preseleccionado = mem.get("metodo_pago")
+    
+    metodo = mostrar_metodos_pago()
+    
+    # Usar el método detectado por chat si existe
+    if metodo_preseleccionado and not metodo:
+        metodo = metodo_preseleccionado
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        if st.button("✅ Confirmar Pago", type="primary", use_container_width=True):
+            if metodo:
+                with st.spinner("Procesando tu pago..."):
+                    # Simular procesamiento de pago
+                    resultado = procesar_pago(metodo, mem["total_pendiente"])
+                    
+                    if resultado["exitoso"]:
+                        # Completar la compra
+                        codigo_pedido = f"PED{random.randint(10000,99999)}"
+                        
+                        # Guardar pedido con información de pago
+                        pedido_completo = {
+                            "tipo": "pedido",
+                            "codigo": codigo_pedido,
+                            "nombre": mem["nombre"],
+                            "producto": mem["producto_seleccionado"],
+                            "cantidad": mem["cantidad"],
+                            "total": mem["total_pendiente"],
+                            "metodo_pago": metodo,
+                            "nombre_metodo_pago": METODOS_PAGO[metodo]["nombre"],
+                            "codigo_pago": resultado["codigo"],
+                            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "estado": "completado"
+                        }
+                        
+                        guardar_pedido_en_github(pedido_completo)
+                        
+                        # Actualizar estado
+                        mem.update({
+                            "producto_seleccionado": None,
+                            "cantidad": None,
+                            "estado_pago": "completado",
+                            "mostrar_feedback": True,
+                            "ultimo_pedido": codigo_pedido,
+                            "metodo_pago": None
+                        })
+                        
+                        st.success(f"✅ **¡Pago exitoso!** Pedido **{codigo_pedido}** confirmado.")
+                        st.balloons()
+                        
+                        # Forzar rerun para mostrar feedback
+                        st.rerun()
+                    else:
+                        st.error("❌ El pago no pudo procesarse. Intentá nuevamente.")
+            else:
+                st.warning("⚠️ Por favor, seleccioná un método de pago primero.")
+    
+    with col2:
+        if st.button("❌ Cancelar Pago", use_container_width=True):
+            mem["estado_pago"] = None
+            mem["metodo_pago"] = None
+            st.rerun()
+
+# -----------------------------------------
+# SISTEMA DE FEEDBACK (ABAJO DE TODO)
+# -----------------------------------------
+mostrar_sistema_feedback()
