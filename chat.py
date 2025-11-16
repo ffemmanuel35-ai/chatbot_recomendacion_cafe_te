@@ -23,7 +23,7 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 # -----------------------------------------
 
 # 🚨 TU REPO REAL
-GITHUB_REPO = "chatbot_recomendacion_cafe_te"
+GITHUB_REPO = "ffemanuel35-ai/chatbot_recomendacion_cafe_te"
 
 FILE_PATH = "pedidos/pedidos.jsonl"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
@@ -310,4 +310,5 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
