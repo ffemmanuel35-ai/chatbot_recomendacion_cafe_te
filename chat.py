@@ -41,7 +41,6 @@ def guardar_pedido_en_github(pedido):
     elif resp.status_code == 404:
         sha = None
         contenido_actual = ""
-        st.info("📄 Archivo creado automáticamente en GitHub (pedidos.jsonl).")
     else:
         st.error(f"Error al acceder al archivo: {resp.text}")
         return
@@ -69,7 +68,6 @@ def guardar_pedido_en_github(pedido):
 # -----------------------------------------
 def guardar_feedback_en_github(feedback_data):
     """Guarda feedback en el mismo archivo de pedidos"""
-    # Usamos el mismo archivo para mantener todo junto
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -227,11 +225,10 @@ def mostrar_metodos_pago():
 
 def procesar_pago(metodo, total, datos_pago=None):
     """Simula el procesamiento del pago"""
-    # En un entorno real, aquí se integraría con APIs de pago
     codigo_pago = f"PAY{random.randint(10000, 99999)}"
     
     resultado = {
-        "exitoso": True,  # Simulamos pago exitoso siempre
+        "exitoso": True,
         "codigo": codigo_pago,
         "metodo": metodo,
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -249,7 +246,7 @@ if "mem" not in st.session_state:
         "preferencia": None,
         "producto_seleccionado": None,
         "cantidad": None,
-        "estado_pago": None,  # 'pendiente', 'procesando', 'completado'
+        "estado_pago": None,
         "metodo_pago": None,
         "mostrar_feedback": False,
         "ultimo_pedido": None,
@@ -259,24 +256,19 @@ if "mem" not in st.session_state:
 mem = st.session_state.mem
 
 # -----------------------------------------
-# CATÁLOGO (SIN IMÁGENES)
+# CATÁLOGO
 # -----------------------------------------
 catalogo = {
     "café de colombia": {"tipo": "café", "perfil": "cítrico", "precio": 1200},
     "café peruano andes": {"tipo": "café", "perfil": "cítrico", "precio": 1250},
-
     "café espresso italiano": {"tipo": "café", "perfil": "intenso", "precio": 1100},
     "café dark roast brasil": {"tipo": "café", "perfil": "intenso", "precio": 1300},
-
     "café arábica light roast": {"tipo": "café", "perfil": "suave", "precio": 1000},
     "café colombiano especial": {"tipo": "café", "perfil": "suave", "precio": 1150},
-
     "té blanco con jazmín": {"tipo": "té", "perfil": "floral", "precio": 800},
     "té oolong floral blend": {"tipo": "té", "perfil": "floral", "precio": 850},
-
     "té rooibos con vainilla": {"tipo": "té", "perfil": "dulce", "precio": 750},
     "té negro miel & canela": {"tipo": "té", "perfil": "dulce", "precio": 790},
-
     "té verde sencha": {"tipo": "té", "perfil": "herbal", "precio": 780},
     "té menta patagónica": {"tipo": "té", "perfil": "herbal", "precio": 760},
 }
@@ -286,21 +278,17 @@ catalogo = {
 # -----------------------------------------
 def extraer_nombre(texto):
     texto = texto.strip()
-
     patrones = [
         r"soy ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)",
         r"me llamo ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)",
         r"mi nombre es ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)"
     ]
-
     for p in patrones:
         m = re.search(p, texto, re.IGNORECASE)
         if m:
             return m.group(1).capitalize()
-
     if len(texto.split()) == 1 and texto.isalpha():
         return texto.capitalize()
-
     return None
 
 # -----------------------------------------
@@ -309,15 +297,12 @@ def extraer_nombre(texto):
 def recomendar_por_perfil(preferencia, actual=None):
     preferencia = preferencia.lower()
     opciones = [(n, d) for n, d in catalogo.items() if preferencia in d["perfil"].lower()]
-
     if not opciones:
         return None, None
-
     if actual:
         for nombre, datos in opciones:
             if nombre != actual:
                 return nombre, datos
-
     return opciones[0]
 
 # -----------------------------------------
@@ -334,11 +319,9 @@ def procesar(texto):
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
         return "¿Cómo te llamás?"
 
-    # 2) Mostrar catálogo (sin imágenes)
+    # 2) Mostrar catálogo
     if "catálogo" in texto_l or "catalogo" in texto_l:
-        cat = "\n".join(
-            [f"- **{n.title()}** — {d['perfil']} — ${d['precio']}" for n, d in catalogo.items()]
-        )
+        cat = "\n".join([f"- **{n.title()}** — {d['perfil']} — ${d['precio']}" for n, d in catalogo.items()])
         return f"📜 **Catálogo disponible:**\n\n{cat}"
 
     # 3) Preferencias por perfil
@@ -347,30 +330,22 @@ def procesar(texto):
         if p in texto_l:
             if p == "citric":
                 p = "cítrico"
-
             mem["preferencia"] = p
             nombre, datos = recomendar_por_perfil(p)
-
             if nombre:
                 mem["producto_seleccionado"] = nombre
-                return (
-                    f"Te recomiendo **{nombre.title()}** — perfil *{datos['perfil']}* — "
-                    f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?"
-                )
+                return (f"Te recomiendo **{nombre.title()}** — perfil *{datos['perfil']}* — "
+                       f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?")
 
     # 4) Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
             nombre, datos = recomendar_por_perfil(mem["preferencia"], actual)
-
             if nombre:
                 mem["producto_seleccionado"] = nombre
-                return (
-                    f"Probá esta alternativa:\n\n"
-                    f"**{nombre.title()}** — {datos['perfil']} — **${datos['precio']}**\n"
-                    f"¿Te gusta?"
-                )
+                return (f"Probá esta alternativa:\n\n**{nombre.title()}** — {datos['perfil']} — **${datos['precio']}**\n"
+                       f"¿Te gusta?")
         return "¿Preferís café o té?"
 
     # 5) Selección por nombre
@@ -389,33 +364,20 @@ def procesar(texto):
         prod = mem["producto_seleccionado"]
         precio = catalogo[prod]["precio"]
         subtotal = precio * mem["cantidad"]
+        return (f"Perfecto {mem['nombre']}:\n**{mem['cantidad']} x {prod.title()}** — Subtotal **${subtotal}**.\n"
+               f"Escribí **'comprar'** o **'confirmo'** para finalizar.")
 
-        return (
-            f"Perfecto {mem['nombre']}:\n"
-            f"**{mem['cantidad']} x {prod.title()}** — Subtotal **${subtotal}**.\n"
-            f"Escribí **'comprar'** o **'confirmo'** para finalizar."
-        )
-
-    # 8) Confirmar compra - NUEVO FLUJO CON PAGOS
+    # 8) Confirmar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
         precio = catalogo[prod]["precio"]
         total = precio * cantidad
-        
         mem["estado_pago"] = "pendiente"
         mem["total_pendiente"] = total
-        
-        return (
-            f"🛒 **Resumen de tu pedido:**\n\n"
-            f"**Producto:** {prod.title()}\n"
-            f"**Cantidad:** {cantidad} unidades\n"
-            f"**Total a pagar:** ${total}\n\n"
-            f"Ahora necesitamos procesar el pago. "
-            f"Podés:\n"
-            f"• Seleccionar tu método de pago aquí abajo 👇\n"
-            f"• O decirme: 'tarjeta crédito', 'débito', 'transferencia' o 'billetera virtual'"
-        )
+        return (f"🛒 **Resumen de tu pedido:**\n\n**Producto:** {prod.title()}\n**Cantidad:** {cantidad} unidades\n"
+               f"**Total a pagar:** ${total}\n\nAhora necesitamos procesar el pago. Podés:\n• Seleccionar tu método de pago aquí abajo 👇\n"
+               f"• O decirme: 'tarjeta crédito', 'débito', 'transferencia' o 'billetera virtual'")
 
     # 9) Detección de método de pago por voz
     if mem["estado_pago"] == "pendiente":
@@ -425,63 +387,62 @@ def procesar(texto):
             metodo_nombre = METODOS_PAGO[metodo_detectado]["nombre"]
             return f"✅ Perfecto, seleccionaste: **{metodo_nombre}**. Ahora confirmá el pago usando los controles de abajo. 👇"
 
-    # 10) Procesar pago desde chat
-    if texto_l in ["pagar", "procesar pago", "pago"] and mem["estado_pago"] == "pendiente":
-        return "Por favor, usá los controles de abajo para seleccionar y confirmar tu método de pago. 👇"
+    # 10) Ayuda
+    if any(palabra in texto_l for palabra in ["ayuda", "help", "qué puedes hacer"]):
+        return ("**Puedo ayudarte con:**\n\n• Recomendarte café o té según tu gusto\n• Mostrarte el catálogo completo\n" 
+               "• Tomar tu pedido y procesar el pago\n• Recordar tus preferencias\n\n¡Decime qué necesitás! 😊")
 
     # 11) Preguntas base
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
-
     if "té" in texto_l or "te" in texto_l:
         return "¿Preferís algo floral, herbal o dulce?"
-
-    # 12) Ayuda
-    if any(palabra in texto_l for palabra in ["ayuda", "help", "qué puedes hacer"]):
-        return (
-            "**Puedo ayudarte con:**\n\n"
-            "• Recomendarte café o té según tu gusto\n"
-            "• Mostrarte el catálogo completo\n" 
-            "• Tomar tu pedido y procesar el pago\n"
-            "• Recordar tus preferencias\n\n"
-            "¡Decime qué necesitás! 😊"
-        )
 
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
 # -----------------------------------------
-# INTERFAZ MEJORADA - PAGOS ABAJO DEL CHAT
+# INTERFAZ MEJORADA - BOTONES FUNCIONALES
 # -----------------------------------------
 
-# Botones de acción rápida
+# Botones de acción rápida - CORREGIDOS
 col1, col2, col3 = st.columns(3)
 
-if col1.button("📜 Ver Catálogo"):
+if col1.button("📜 Ver Catálogo", use_container_width=True):
+    # Agregar mensaje y procesar inmediatamente
     st.session_state.historial.append({"role": "user", "content": "catálogo"})
+    respuesta = procesar("catálogo")
+    st.session_state.historial.append({"role": "assistant", "content": respuesta})
     st.rerun()
 
-if col2.button("🛒 Comprar"):
+if col2.button("🛒 Comprar", use_container_width=True):
     st.session_state.historial.append({"role": "user", "content": "quiero comprar"})
+    respuesta = procesar("quiero comprar")
+    st.session_state.historial.append({"role": "assistant", "content": respuesta})
     st.rerun()
 
-if col3.button("❓ Ayuda"):
+if col3.button("❓ Ayuda", use_container_width=True):
     st.session_state.historial.append({"role": "user", "content": "ayuda"})
+    respuesta = procesar("ayuda")
+    st.session_state.historial.append({"role": "assistant", "content": respuesta})
     st.rerun()
 
-# Chat interface
+# Inicializar historial si no existe
 if "historial" not in st.session_state:
     st.session_state.historial = [
         {"role": "assistant", "content": "¡Hola! ¿Cómo te llamás?"}
     ]
 
+# Input de chat
 user_msg = st.chat_input("Escribí tu mensaje...")
 
 if user_msg:
     st.session_state.historial.append({"role": "user", "content": user_msg})
     respuesta = procesar(user_msg)
     st.session_state.historial.append({"role": "assistant", "content": respuesta})
+    st.rerun()
 
 # Mostrar historial de chat
+st.markdown("---")
 for msg in st.session_state.historial:
     if msg["role"] == "user":
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
@@ -495,12 +456,9 @@ if mem["estado_pago"] == "pendiente":
     st.markdown("---")
     st.markdown("## 💳 Procesar Pago")
     
-    # Si ya se detectó un método por chat, lo preseleccionamos
     metodo_preseleccionado = mem.get("metodo_pago")
-    
     metodo = mostrar_metodos_pago()
     
-    # Usar el método detectado por chat si existe
     if metodo_preseleccionado and not metodo:
         metodo = metodo_preseleccionado
     
@@ -510,14 +468,9 @@ if mem["estado_pago"] == "pendiente":
         if st.button("✅ Confirmar Pago", type="primary", use_container_width=True):
             if metodo:
                 with st.spinner("Procesando tu pago..."):
-                    # Simular procesamiento de pago
                     resultado = procesar_pago(metodo, mem["total_pendiente"])
-                    
                     if resultado["exitoso"]:
-                        # Completar la compra
                         codigo_pedido = f"PED{random.randint(10000,99999)}"
-                        
-                        # Guardar pedido con información de pago
                         pedido_completo = {
                             "tipo": "pedido",
                             "codigo": codigo_pedido,
@@ -531,10 +484,7 @@ if mem["estado_pago"] == "pendiente":
                             "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "estado": "completado"
                         }
-                        
                         guardar_pedido_en_github(pedido_completo)
-                        
-                        # Actualizar estado
                         mem.update({
                             "producto_seleccionado": None,
                             "cantidad": None,
@@ -543,11 +493,8 @@ if mem["estado_pago"] == "pendiente":
                             "ultimo_pedido": codigo_pedido,
                             "metodo_pago": None
                         })
-                        
                         st.success(f"✅ **¡Pago exitoso!** Pedido **{codigo_pedido}** confirmado.")
                         st.balloons()
-                        
-                        # Forzar rerun para mostrar feedback
                         st.rerun()
                     else:
                         st.error("❌ El pago no pudo procesarse. Intentá nuevamente.")
