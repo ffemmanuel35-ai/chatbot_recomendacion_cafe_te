@@ -92,7 +92,6 @@ def mostrar_sistema_feedback():
 
 def procesar_feedback(calificacion):
     """Procesa el feedback del usuario - SOLO EN MEMORIA LOCAL"""
-    # Guardar feedback solo en memoria de sesión (no en GitHub)
     if "feedback_data" not in st.session_state:
         st.session_state.feedback_data = []
     
@@ -106,7 +105,6 @@ def procesar_feedback(calificacion):
     
     st.session_state.feedback_data.append(feedback_local)
     
-    # Mostrar mensaje de agradecimiento
     mensajes_agradecimiento = [
         f"¡Gracias por tu feedback de {calificacion} estrella{'s' if calificacion > 1 else ''}! 💫",
         f"¡Valoramos tu opinión de {calificacion} estrella{'s' if calificacion > 1 else ''}! 🌟",
@@ -128,21 +126,6 @@ def obtener_comentario_automatico(calificacion):
         5: "Experiencia excelente"
     }
     return comentarios.get(calificacion, "Sin comentario")
-
-def mostrar_estadisticas_feedback():
-    """Muestra estadísticas del feedback local (solo para demostración)"""
-    if hasattr(st.session_state, 'feedback_data') and st.session_state.feedback_data:
-        st.markdown("---")
-        st.markdown("### 📈 Estadísticas de Feedback (Local)")
-        total_feedback = len(st.session_state.feedback_data)
-        promedio = sum(fb['calificacion'] for fb in st.session_state.feedback_data) / total_feedback
-        
-        st.write(f"**Total de valoraciones:** {total_feedback}")
-        st.write(f"**Calificación promedio:** {promedio:.1f} ⭐")
-        
-        # Mostrar último feedback
-        ultimo_fb = st.session_state.feedback_data[-1]
-        st.write(f"**Última valoración:** {ultimo_fb['calificacion']} estrellas - {ultimo_fb['comentario']}")
 
 # -----------------------------------------
 # SISTEMA DE MÉTODOS DE PAGO
@@ -194,12 +177,10 @@ def mostrar_metodos_pago():
         key="metodo_pago_seleccionado"
     )
     
-    # Mostrar instrucciones del método seleccionado
     if metodo_seleccionado:
         metodo = METODOS_PAGO[metodo_seleccionado]
         st.info(f"**{metodo['nombre']}**: {metodo['instrucciones']}")
         
-        # Campos para datos de tarjeta si es necesario
         if metodo["requiere_datos"]:
             col1, col2 = st.columns(2)
             with col1:
@@ -265,21 +246,41 @@ catalogo = {
 }
 
 # -----------------------------------------
-# EXTRACCIÓN DE NOMBRE
+# EXTRACCIÓN DE NOMBRE MEJORADA
 # -----------------------------------------
 def extraer_nombre(texto):
-    texto = texto.strip()
+    """Extrae nombres reales, evitando palabras comunes"""
+    texto = texto.strip().lower()
+    
+    # Lista de palabras que NO son nombres (comandos comunes)
+    palabras_no_nombres = {
+        "catálogo", "catalogo", "ayuda", "hola", "comprar", "compra", 
+        "quiero", "deseo", "cafe", "café", "te", "té", "otro", "otra",
+        "si", "sí", "no", "gracias", "help", "menu", "menú"
+    }
+    
+    # Si es una palabra común, no es un nombre
+    if texto in palabras_no_nombres:
+        return None
+    
     patrones = [
-        r"soy ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)",
-        r"me llamo ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)",
-        r"mi nombre es ([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)"
+        r"soy\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,})",
+        r"me\s+llamo\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,})",
+        r"mi\s+nombre\s+es\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ]{2,})"
     ]
+    
     for p in patrones:
         m = re.search(p, texto, re.IGNORECASE)
         if m:
-            return m.group(1).capitalize()
-    if len(texto.split()) == 1 and texto.isalpha():
+            nombre = m.group(1).capitalize()
+            # Verificar que no sea una palabra común
+            if nombre.lower() not in palabras_no_nombres and len(nombre) >= 2:
+                return nombre
+    
+    # Solo considerar como nombre si es una sola palabra y no es común
+    if len(texto.split()) == 1 and texto.isalpha() and texto not in palabras_no_nombres and len(texto) >= 2:
         return texto.capitalize()
+    
     return None
 
 # -----------------------------------------
@@ -300,15 +301,22 @@ def recomendar_por_perfil(preferencia, actual=None):
 # LÓGICA DEL CHATBOT MEJORADA
 # -----------------------------------------
 def procesar(texto):
-    texto_l = texto.lower()
+    texto_l = texto.lower().strip()
 
-    # 1) Nombre
+    # 0) Verificar si es un comando común antes de buscar nombre
+    comandos_comunes = {"catálogo", "catalogo", "ayuda", "hola", "comprar"}
+    if texto_l in comandos_comunes and mem["nombre"] is None:
+        # Si es un comando y no tenemos nombre, pedir nombre primero
+        return "Primero decime tu nombre para poder ayudarte mejor 😊"
+
+    # 1) Nombre - SOLO si no tenemos nombre aún
     if mem["nombre"] is None:
         posible = extraer_nombre(texto)
         if posible:
             mem["nombre"] = posible
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
-        return "¿Cómo te llamás?"
+        else:
+            return "¿Cómo te llamás?"
 
     # 2) Mostrar catálogo
     if "catálogo" in texto_l or "catalogo" in texto_l:
@@ -388,6 +396,10 @@ def procesar(texto):
         return "¿Buscás algo intenso, suave o cítrico?"
     if "té" in texto_l or "te" in texto_l:
         return "¿Preferís algo floral, herbal o dulce?"
+
+    # 12) Saludo después de tener nombre
+    if any(palabra in texto_l for palabra in ["hola", "hi", "hey"]):
+        return f"¡Hola de nuevo {mem['nombre']}! 😊 ¿En qué más puedo ayudarte?"
 
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
@@ -500,8 +512,3 @@ if mem["estado_pago"] == "pendiente":
 # -----------------------------------------
 # SISTEMA DE FEEDBACK LOCAL (ABAJO DE TODO)
 # -----------------------------------------
-mostrar_sistema_feedback()
-
-# Opcional: Mostrar estadísticas de feedback local (solo para desarrollo/demo)
-if st.checkbox("📊 Mostrar estadísticas de feedback (solo desarrollo)"):
-    mostrar_estadisticas_feedback()
