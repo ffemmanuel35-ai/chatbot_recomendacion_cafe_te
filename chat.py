@@ -22,7 +22,7 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 # GUARDADO REMOTO EN GITHUB (JSONL)
 # -----------------------------------------
 
-GITHUB_REPO = "chatbot_recomendacion_cafe_te"
+GITHUB_REPO = "Clonuel/chatbot_recomendacion_cafe_te"
 FILE_PATH = "pedidos/pedidos.jsonl"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Cargado desde Streamlit Cloud
 
@@ -259,7 +259,7 @@ def procesar(texto):
             f"Escribí **'comprar'** o **'confirmo'** para finalizar."
         )
 
-    # 8. Finalizar compra
+       # 8. Finalizar compra
     if texto_l in ["comprar", "confirmo"]:
         if mem["producto_seleccionado"] and mem["cantidad"]:
             prod = mem["producto_seleccionado"]
@@ -268,23 +268,24 @@ def procesar(texto):
             total = precio * cantidad
             codigo = f"PED{random.randint(10000,99999)}"
 
-        guardar_pedido_en_github({
-            "codigo": codigo,
-            "nombre": mem["nombre"],
-            "producto": prod,
-            "cantidad": cantidad,
-            "total": total
-        })
+            # Guardar en GitHub JSONL
+            guardar_pedido_en_github({
+                "codigo": codigo,
+                "nombre": mem["nombre"],
+                "producto": prod,
+                "cantidad": cantidad,
+                "total": total
+            })
 
-        mem["producto_seleccionado"] = None
-        mem["cantidad"] = None
+            # Reset
+            mem["producto_seleccionado"] = None
+            mem["cantidad"] = None
 
-        return (
-            f"✅ **Compra confirmada, {mem['nombre']}!**\n"
-            f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
-            f"Gracias por tu compra ☕✨"
-        )
-
+            return (
+                f"✅ **Compra confirmada, {mem['nombre']}!**\n"
+                f"Pedido **{codigo}**: {cantidad} x {prod.title()} — Total **${total}**.\n"
+                f"Gracias por tu compra ☕✨"
+            )
 
     # 9. Intenciones principales
     if "café" in texto_l or "cafe" in texto_l:
@@ -326,3 +327,4 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
