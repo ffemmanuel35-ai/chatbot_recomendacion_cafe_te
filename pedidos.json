@@ -6,5 +6,13 @@
     "cantidad": 4,
     "total": 4000,
     "fecha": 110749
+  },
+  {
+    "codigo": "PED37968",
+    "nombre": "Fernando",
+    "producto": "té blanco con jazmín",
+    "cantidad": 9,
+    "total": 7200,
+    "fecha": 901354
   }
 ]
