@@ -166,7 +166,7 @@ catalogo = {
         "precio": 760,
         "imagen": ""https://images.unsplash.com/photo-1505576391880-b3f9d713dc53?auto=format&fit=crop&w=800&q=80"
     },
-}
+
 
 # -----------------------------------------
 # MOSTRAR CATÁLOGO
@@ -352,5 +352,6 @@ for msg in st.session_state.historial:
         st.markdown(f"🧑‍💬 **Tú:** {msg['content']}")
     else:
         st.markdown(f"🤖 **Asistente:** {msg['content']}")
+
 
 
