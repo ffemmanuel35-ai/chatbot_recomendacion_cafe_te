@@ -1,1 +1,10 @@
-
+[
+  {
+    "codigo": "PED45543",
+    "nombre": "Maria",
+    "producto": "café arábica light roast",
+    "cantidad": 4,
+    "total": 4000,
+    "fecha": 110749
+  }
+]
