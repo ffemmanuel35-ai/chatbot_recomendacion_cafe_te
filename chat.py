@@ -5,6 +5,7 @@ import random
 import base64
 import json
 import requests
+from datetime import datetime
 
 # -----------------------------------------
 # CONFIGURACIÓN STREAMLIT
@@ -19,16 +20,16 @@ y puedo recordar tus **preferencias** y **tu nombre**.
 """)
 
 # -----------------------------------------
-# GUARDADO REMOTO EN GITHUB (JSON)
+# GUARDADO REMOTO EN GITHUB (JSONL)
 # -----------------------------------------
 
 # 🚨 TU REPO REAL
 GITHUB_REPO = "ffemmanuel35-ai/chatbot_recomendacion_cafe_te"
-FILE_PATH = "pedidos.json"  # Cambiado a tu archivo pedidos.json
+FILE_PATH = "pedidos.json"  # Tu archivo pedidos.json
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Definido en Streamlit Cloud
 
 def guardar_pedido_en_github(pedido):
-    """Guarda un pedido en el archivo pedidos.json dentro del repositorio GitHub."""
+    """Guarda un pedido en una nueva línea del archivo pedidos.json (formato JSONL)."""
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{FILE_PATH}"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -43,29 +44,25 @@ def guardar_pedido_en_github(pedido):
         data = resp.json()
         sha = data["sha"]
         contenido_actual = base64.b64decode(data["content"]).decode("utf-8")
-        
-        # Cargar JSON existente
-        try:
-            pedidos_existentes = json.loads(contenido_actual)
-            if not isinstance(pedidos_existentes, list):
-                pedidos_existentes = [pedidos_existentes]
-        except json.JSONDecodeError:
-            pedidos_existentes = []
-            
     elif resp.status_code == 404:
         # Archivo no existe, se creará
         sha = None
-        pedidos_existentes = []
+        contenido_actual = ""
         st.info("Archivo no encontrado, se creará uno nuevo en el repo.")
     else:
         st.error(f"Error al acceder al archivo en GitHub: {resp.status_code}")
         return
 
-    # Agregar nuevo pedido al array
-    pedidos_existentes.append(pedido)
+    # Agregar nuevo pedido en una nueva línea (formato JSONL)
+    nueva_linea = json.dumps(pedido, ensure_ascii=False)
     
-    # Convertir a JSON formateado
-    nuevo_contenido = json.dumps(pedidos_existentes, ensure_ascii=False, indent=2)
+    # Si el archivo no está vacío, agregar salto de línea antes del nuevo pedido
+    if contenido_actual.strip():
+        # Limpiar el contenido actual (eliminar espacios en blanco al final)
+        contenido_actual = contenido_actual.rstrip()
+        nuevo_contenido = contenido_actual + "\n" + nueva_linea + "\n"
+    else:
+        nuevo_contenido = nueva_linea + "\n"
 
     # Crear body para la actualización
     update_data = {
@@ -260,14 +257,14 @@ def procesar(texto):
         total = precio * cantidad
         codigo = f"PED{random.randint(10000,99999)}"
 
-        # Guardar en GitHub (JSON)
+        # Guardar en GitHub (JSONL - una línea por pedido)
         guardar_pedido_en_github({
             "codigo": codigo,
             "nombre": mem["nombre"],
             "producto": prod,
             "cantidad": cantidad,
             "total": total,
-            "fecha": random.randint(100000, 999999)  # timestamp simulado
+            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })
 
         # Limpiar memoria temporal
