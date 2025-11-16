@@ -63,9 +63,7 @@ def guardar_pedido_en_github(pedido):
     else:
         st.error(f"⚠ Error al guardar en GitHub: {update_resp.text}")
 
-# -----------------------------------------
-# SISTEMA DE FEEDBACK LOCAL (NO SE GUARDA EN JSON)
-# -----------------------------------------
+# SISTEMA DE FEEDBACK LOCAL
 def mostrar_sistema_feedback():
     """Muestra el sistema de feedback después de una compra - SOLO LOCAL"""
     if st.session_state.mem.get("mostrar_feedback"):
@@ -97,7 +95,7 @@ def procesar_feedback(calificacion):
     
     feedback_local = {
         "calificacion": calificacion,
-        "usuario": st.session_state.mem.get("nombre", "Anónimo"),
+        "usuario": st.session_state.mem.get("nombre", "Cliente"),
         "pedido": st.session_state.mem.get("ultimo_pedido", "N/A"),
         "timestamp": datetime.now().isoformat(),
         "comentario": obtener_comentario_automatico(calificacion)
@@ -214,7 +212,7 @@ def procesar_pago(metodo, total, datos_pago=None):
 # -----------------------------------------
 if "mem" not in st.session_state:
     st.session_state.mem = {
-        "nombre": None,
+        "nombre": "Cliente",  # Nombre por defecto
         "preferencia": None,
         "producto_seleccionado": None,
         "cantidad": None,
@@ -256,7 +254,7 @@ def extraer_nombre(texto):
     palabras_no_nombres = {
         "catálogo", "catalogo", "ayuda", "hola", "comprar", "compra", 
         "quiero", "deseo", "cafe", "café", "te", "té", "otro", "otra",
-        "si", "sí", "no", "gracias", "help", "menu", "menú"
+        "si", "sí", "no", "gracias", "help", "menu", "menú", "pagar"
     }
     
     # Si es una palabra común, no es un nombre
@@ -298,32 +296,29 @@ def recomendar_por_perfil(preferencia, actual=None):
     return opciones[0]
 
 # -----------------------------------------
-# LÓGICA DEL CHATBOT MEJORADA
+# LÓGICA DEL CHATBOT MEJORADA - SIN BLOQUEO POR NOMBRE
 # -----------------------------------------
 def procesar(texto):
     texto_l = texto.lower().strip()
 
-    # 0) Verificar si es un comando común antes de buscar nombre
-    comandos_comunes = {"catálogo", "catalogo", "ayuda", "hola", "comprar"}
-    if texto_l in comandos_comunes and mem["nombre"] is None:
-        # Si es un comando y no tenemos nombre, pedir nombre primero
-        return "Primero decime tu nombre para poder ayudarte mejor 😊"
-
-    # 1) Nombre - SOLO si no tenemos nombre aún
-    if mem["nombre"] is None:
+    # 1) Extraer nombre si es posible (pero no bloquear funcionalidad)
+    if mem["nombre"] == "Cliente":  # Solo si todavía tiene el nombre por defecto
         posible = extraer_nombre(texto)
         if posible:
             mem["nombre"] = posible
             return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
-        else:
-            return "¿Cómo te llamás?"
 
-    # 2) Mostrar catálogo
+    # 2) Mostrar catálogo - FUNCIONA INMEDIATAMENTE
     if "catálogo" in texto_l or "catalogo" in texto_l:
         cat = "\n".join([f"- **{n.title()}** — {d['perfil']} — ${d['precio']}" for n, d in catalogo.items()])
         return f"📜 **Catálogo disponible:**\n\n{cat}"
 
-    # 3) Preferencias por perfil
+    # 3) Ayuda - FUNCIONA INMEDIATAMENTE
+    if any(palabra in texto_l for palabra in ["ayuda", "help", "qué puedes hacer"]):
+        return ("**Puedo ayudarte con:**\n\n• Recomendarte café o té según tu gusto\n• Mostrarte el catálogo completo\n" 
+               "• Tomar tu pedido y procesar el pago\n• Recordar tus preferencias\n\n¡Decime qué necesitás! 😊")
+
+    # 4) Preferencias por perfil - FUNCIONA INMEDIATAMENTE
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
     for p in perfiles:
         if p in texto_l:
@@ -336,7 +331,7 @@ def procesar(texto):
                 return (f"Te recomiendo **{nombre.title()}** — perfil *{datos['perfil']}* — "
                        f"Precio: **${datos['precio']}**.\n\n¿Lo querés o querés otra opción?")
 
-    # 4) Otra opción
+    # 5) Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
@@ -347,17 +342,17 @@ def procesar(texto):
                        f"¿Te gusta?")
         return "¿Preferís café o té?"
 
-    # 5) Selección por nombre
+    # 6) Selección por nombre
     for prod in catalogo.keys():
         if prod in texto_l:
             mem["producto_seleccionado"] = prod
             return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
-    # 6) Confirmación
+    # 7) Confirmación
     if texto_l in ["si", "sí", "si quiero", "lo quiero", "lo deseo", "dale", "meta", "quiero"] and mem["producto_seleccionado"]:
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
-    # 7) Cantidad
+    # 8) Cantidad
     if texto_l.isdigit() and mem["producto_seleccionado"]:
         mem["cantidad"] = int(texto_l)
         prod = mem["producto_seleccionado"]
@@ -366,7 +361,7 @@ def procesar(texto):
         return (f"Perfecto {mem['nombre']}:\n**{mem['cantidad']} x {prod.title()}** — Subtotal **${subtotal}**.\n"
                f"Escribí **'comprar'** o **'confirmo'** para finalizar.")
 
-    # 8) Confirmar compra
+    # 9) Confirmar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
@@ -378,7 +373,7 @@ def procesar(texto):
                f"**Total a pagar:** ${total}\n\nAhora necesitamos procesar el pago. Podés:\n• Seleccionar tu método de pago aquí abajo 👇\n"
                f"• O decirme: 'tarjeta crédito', 'débito', 'transferencia' o 'billetera virtual'")
 
-    # 9) Detección de método de pago por voz
+    # 10) Detección de método de pago por voz
     if mem["estado_pago"] == "pendiente":
         metodo_detectado = detectar_metodo_pago(texto_l)
         if metodo_detectado:
@@ -386,28 +381,23 @@ def procesar(texto):
             metodo_nombre = METODOS_PAGO[metodo_detectado]["nombre"]
             return f"✅ Perfecto, seleccionaste: **{metodo_nombre}**. Ahora confirmá el pago usando los controles de abajo. 👇"
 
-    # 10) Ayuda
-    if any(palabra in texto_l for palabra in ["ayuda", "help", "qué puedes hacer"]):
-        return ("**Puedo ayudarte con:**\n\n• Recomendarte café o té según tu gusto\n• Mostrarte el catálogo completo\n" 
-               "• Tomar tu pedido y procesar el pago\n• Recordar tus preferencias\n\n¡Decime qué necesitás! 😊")
-
-    # 11) Preguntas base
+    # 11) Preguntas base - FUNCIONAN INMEDIATAMENTE
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
     if "té" in texto_l or "te" in texto_l:
         return "¿Preferís algo floral, herbal o dulce?"
 
-    # 12) Saludo después de tener nombre
+    # 12) Saludo
     if any(palabra in texto_l for palabra in ["hola", "hi", "hey"]):
-        return f"¡Hola de nuevo {mem['nombre']}! 😊 ¿En qué más puedo ayudarte?"
+        return f"¡Hola {mem['nombre']}! 😊 ¿En qué puedo ayudarte?"
 
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
 # -----------------------------------------
-# INTERFAZ MEJORADA - BOTONES FUNCIONALES
+# INTERFAZ MEJORADA - BOTONES FUNCIONALES INMEDIATOS
 # -----------------------------------------
 
-# Botones de acción rápida
+# Botones de acción rápida - FUNCIONAN INMEDIATAMENTE
 col1, col2, col3 = st.columns(3)
 
 if col1.button("📜 Ver Catálogo", use_container_width=True):
@@ -431,7 +421,7 @@ if col3.button("❓ Ayuda", use_container_width=True):
 # Inicializar historial si no existe
 if "historial" not in st.session_state:
     st.session_state.historial = [
-        {"role": "assistant", "content": "¡Hola! ¿Cómo te llamás?"}
+        {"role": "assistant", "content": "¡Hola! Soy tu asistente de café y té. ¿En qué puedo ayudarte? 😊"}
     ]
 
 # Input de chat
@@ -508,7 +498,3 @@ if mem["estado_pago"] == "pendiente":
             mem["estado_pago"] = None
             mem["metodo_pago"] = None
             st.rerun()
-
-# -----------------------------------------
-# SISTEMA DE FEEDBACK LOCAL (ABAJO DE TODO)
-# -----------------------------------------
