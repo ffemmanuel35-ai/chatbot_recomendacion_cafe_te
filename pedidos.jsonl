@@ -3,3 +3,4 @@
 {"codigo": "PED16833", "nombre": "Hector", "producto": "café arábica light roast", "cantidad": 4, "total": 4000, "fecha": "2025-11-16 21:49:53"}
 {"codigo": "PED80867", "nombre": "Miguel", "producto": "café colombiano especial", "cantidad": 5, "total": 5750, "fecha": "2025-11-16 22:07:42"}
 {"codigo": "PED29428", "nombre": "Enrique", "producto": "café colombiano especial", "cantidad": 6, "total": 6900, "metodo_pago": "tarjeta_credito", "codigo_pago": "PAY28989", "fecha": "2025-11-16 23:11:06"}
+{"tipo": "pedido", "codigo": "PED60992", "nombre": "Ayuda", "producto": "café colombiano especial", "cantidad": 4, "total": 4600, "metodo_pago": "transferencia", "nombre_metodo_pago": "📲 Transferencia", "codigo_pago": "PAY23917", "fecha": "2025-11-16 23:24:33", "estado": "completado"}
