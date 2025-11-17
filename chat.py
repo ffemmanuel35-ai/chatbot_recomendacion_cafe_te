@@ -370,8 +370,7 @@ def procesar(texto):
         mem["estado_pago"] = "pendiente"
         mem["total_pendiente"] = total
         return (f"🛒 **Resumen de tu pedido:**\n\n**Producto:** {prod.title()}\n**Cantidad:** {cantidad} unidades\n"
-               f"**Total a pagar:** ${total}\n\nAhora necesitamos procesar el pago. Podés:\n• Seleccionar tu método de pago aquí abajo 👇\n"
-               f"• O decirme: 'tarjeta crédito', 'débito', 'transferencia' o 'billetera virtual'")
+               f"**Total a pagar:** ${total}\n\n")
 
     # 10) Detección de método de pago por voz
     if mem["estado_pago"] == "pendiente":
@@ -498,4 +497,5 @@ if mem["estado_pago"] == "pendiente":
             mem["estado_pago"] = None
             mem["metodo_pago"] = None
             st.rerun()
+
 
