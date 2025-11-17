@@ -133,11 +133,11 @@ def procesar_pago(metodo, total, datos_pago=None):
     return resultado
 
 # -----------------------------------------
-# MEMORIA DE SESIÓN SIMPLIFICADA
+# MEMORIA DE SESIÓN MEJORADA
 # -----------------------------------------
 if "mem" not in st.session_state:
     st.session_state.mem = {
-        "nombre": "Cliente",  # Nombre por defecto
+        "nombre": None,  # Cambiado a None para forzar la obtención del nombre
         "preferencia": None,
         "producto_seleccionado": None,
         "cantidad": None,
@@ -178,7 +178,8 @@ def extraer_nombre(texto):
     palabras_no_nombres = {
         "catálogo", "catalogo", "ayuda", "hola", "comprar", "compra", 
         "quiero", "deseo", "cafe", "café", "te", "té", "otro", "otra",
-        "si", "sí", "no", "gracias", "help", "menu", "menú", "pagar"
+        "si", "sí", "no", "gracias", "help", "menu", "menú", "pagar",
+        "intenso", "suave", "cítrico", "floral", "dulce", "herbal"
     }
     
     # Si es una palabra común, no es un nombre
@@ -220,20 +221,27 @@ def recomendar_por_perfil(preferencia, actual=None):
     return opciones[0]
 
 # -----------------------------------------
-# LÓGICA DEL CHATBOT SIMPLIFICADA
+# LÓGICA DEL CHATBOT MEJORADA - MANTIENE EL NOMBRE
 # -----------------------------------------
 def procesar(texto):
     texto_l = texto.lower().strip()
 
-    # 1) Extraer nombre si es posible (pero no bloquear funcionalidad)
-    if mem["nombre"] == "Cliente":  # Solo si todavía tiene el nombre por defecto
+    # 1) OBTENER NOMBRE - PRIORIDAD AL INICIO
+    if mem["nombre"] is None:
         posible = extraer_nombre(texto)
         if posible:
             mem["nombre"] = posible
-            return f"Encantado, **{mem['nombre']}** 😊 ¿Preferís café o té?"
+            return f"¡Encantado, **{mem['nombre']}**! 😊 ¿Preferís café o té?"
+        else:
+            # Si no es un nombre, pero es un comando, pedir nombre primero
+            comandos_permitidos = {"ayuda", "help", "qué puedes hacer"}
+            if texto_l not in comandos_permitidos:
+                return "¡Hola! Para comenzar, ¿podrías decirme tu nombre? 😊"
 
-    # 2) Mostrar catálogo - FUNCIONA INMEDIATAMENTE
+    # 2) Mostrar catálogo - FUNCIONA SOLO CON NOMBRE
     if "catálogo" in texto_l or "catalogo" in texto_l:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder mostrarte el catálogo 😊"
         cat = "\n".join([f"- **{n.title()}** — {d['perfil']} — ${d['precio']}" for n, d in catalogo.items()])
         return f"📜 **Catálogo disponible:**\n\n{cat}"
 
@@ -242,10 +250,12 @@ def procesar(texto):
         return ("**Puedo ayudarte con:**\n\n• Recomendarte café o té según tu gusto\n• Mostrarte el catálogo completo\n" 
                "• Tomar tu pedido y procesar el pago\n• Recordar tus preferencias\n\n¡Decime qué necesitás! 😊")
 
-    # 4) Preferencias por perfil - FUNCIONA INMEDIATAMENTE
+    # 4) Preferencias por perfil - FUNCIONA SOLO CON NOMBRE
     perfiles = ["floral", "dulce", "herbal", "intenso", "suave", "cítrico", "citric"]
     for p in perfiles:
         if p in texto_l:
+            if mem["nombre"] is None:
+                return "Primero decime tu nombre para poder recomendarte productos 😊"
             if p == "citric":
                 p = "cítrico"
             mem["preferencia"] = p
@@ -257,6 +267,8 @@ def procesar(texto):
 
     # 5) Otra opción
     if any(p in texto_l for p in ["otro", "otra", "otra opción", "quiero otra", "mostrame otro"]):
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder ayudarte 😊"
         if mem["preferencia"]:
             actual = mem["producto_seleccionado"]
             nombre, datos = recomendar_por_perfil(mem["preferencia"], actual)
@@ -269,15 +281,21 @@ def procesar(texto):
     # 6) Selección por nombre
     for prod in catalogo.keys():
         if prod in texto_l:
+            if mem["nombre"] is None:
+                return "Primero decime tu nombre para poder tomar tu pedido 😊"
             mem["producto_seleccionado"] = prod
             return f"Perfecto {mem['nombre']}. ¿Cuántas unidades querés?"
 
     # 7) Confirmación
     if texto_l in ["si", "sí", "si quiero", "lo quiero", "lo deseo", "dale", "meta", "quiero"] and mem["producto_seleccionado"]:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder continuar con tu compra 😊"
         return "Perfecto 😊 ¿Cuántas unidades querés comprar?"
 
     # 8) Cantidad
     if texto_l.isdigit() and mem["producto_seleccionado"]:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder procesar tu pedido 😊"
         mem["cantidad"] = int(texto_l)
         prod = mem["producto_seleccionado"]
         precio = catalogo[prod]["precio"]
@@ -287,32 +305,41 @@ def procesar(texto):
 
     # 9) Confirmar compra
     if texto_l in ["comprar", "confirmo"] and mem["producto_seleccionado"] and mem["cantidad"]:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder finalizar tu compra 😊"
         prod = mem["producto_seleccionado"]
         cantidad = mem["cantidad"]
         precio = catalogo[prod]["precio"]
         total = precio * cantidad
         mem["estado_pago"] = "pendiente"
         mem["total_pendiente"] = total
-        return (f"🛒 **Resumen de tu pedido:**\n\n**Producto:** {prod.title()}\n**Cantidad:** {cantidad} unidades\n"
+        return (f"🛒 **Resumen de tu pedido {mem['nombre']}:**\n\n**Producto:** {prod.title()}\n**Cantidad:** {cantidad} unidades\n"
                f"**Total a pagar:** ${total}\n\nAhora necesitamos procesar el pago. Seleccioná tu método de pago aquí abajo 👇")
 
-    # 10) Preguntas base - FUNCIONAN INMEDIATAMENTE
+    # 10) Preguntas base - FUNCIONAN SOLO CON NOMBRE
     if "café" in texto_l or "cafe" in texto_l:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder recomendarte cafés 😊"
         return "¿Buscás algo intenso, suave o cítrico?"
     if "té" in texto_l or "te" in texto_l:
+        if mem["nombre"] is None:
+            return "Primero decime tu nombre para poder recomendarte tés 😊"
         return "¿Preferís algo floral, herbal o dulce?"
 
     # 11) Saludo
     if any(palabra in texto_l for palabra in ["hola", "hi", "hey"]):
-        return f"¡Hola {mem['nombre']}! 😊 ¿En qué puedo ayudarte?"
+        if mem["nombre"]:
+            return f"¡Hola {mem['nombre']}! 😊 ¿En qué puedo ayudarte?"
+        else:
+            return "¡Hola! ¿Podrías decirme tu nombre para comenzar? 😊"
 
     return "No estoy seguro de haber entendido. ¿Querés ver el catálogo o buscás café o té?"
 
 # -----------------------------------------
-# INTERFAZ MEJORADA - BOTONES FUNCIONALES INMEDIATOS
+# INTERFAZ MEJORADA - BOTONES FUNCIONALES
 # -----------------------------------------
 
-# Botones de acción rápida - FUNCIONAN INMEDIATAMENTE
+# Botones de acción rápida
 col1, col2, col3 = st.columns(3)
 
 if col1.button("📜 Ver Catálogo", use_container_width=True):
@@ -336,7 +363,7 @@ if col3.button("❓ Ayuda", use_container_width=True):
 # Inicializar historial si no existe
 if "historial" not in st.session_state:
     st.session_state.historial = [
-        {"role": "assistant", "content": "¡Hola! Soy tu asistente de café y té. ¿En qué puedo ayudarte? 😊"}
+        {"role": "assistant", "content": "¡Hola! Soy tu asistente de café y té. ¿Podrías decirme tu nombre para comenzar? 😊"}
     ]
 
 # Input de chat
@@ -376,7 +403,7 @@ if mem["estado_pago"] == "pendiente":
                         codigo_pedido = f"PED{random.randint(10000,99999)}"
                         pedido_completo = {
                             "codigo": codigo_pedido,
-                            "nombre": mem["nombre"],
+                            "nombre": mem["nombre"],  # EL NOMBRE SE MANTIENE HASTA EL FINAL
                             "producto": mem["producto_seleccionado"],
                             "cantidad": mem["cantidad"],
                             "total": mem["total_pendiente"],
@@ -388,7 +415,10 @@ if mem["estado_pago"] == "pendiente":
                         }
                         guardar_pedido_en_github(pedido_completo)
                         
-                        # LIMPIAR MEMORIA Y MOSTRAR MENSAJE FINAL
+                        # GUARDAR EL NOMBRE PARA EL MENSAJE FINAL
+                        nombre_cliente = mem["nombre"]
+                        
+                        # LIMPIAR SOLO LOS DATOS TEMPORALES, MANTENER EL NOMBRE
                         mem.update({
                             "producto_seleccionado": None,
                             "cantidad": None,
@@ -396,10 +426,11 @@ if mem["estado_pago"] == "pendiente":
                             "ultimo_pedido": codigo_pedido,
                             "metodo_pago": None,
                             "total_pendiente": None
+                            # NO LIMPIAMOS EL NOMBRE - SE MANTIENE PARA FUTURAS INTERACCIONES
                         })
                         
-                        # AGREGAR MENSAJE DE AGRADECIMIENTO AL HISTORIAL
-                        mensaje_agradecimiento = f"✅ **¡Compra confirmada!** Pedido **{codigo_pedido}** procesado exitosamente. ¡Gracias por su compra! 🎉"
+                        # AGREGAR MENSAJE DE AGRADECIMIENTO PERSONALIZADO AL HISTORIAL
+                        mensaje_agradecimiento = f"✅ **¡Compra confirmada {nombre_cliente}!** Pedido **{codigo_pedido}** procesado exitosamente. ¡Gracias por su compra! 🎉"
                         st.session_state.historial.append({"role": "assistant", "content": mensaje_agradecimiento})
                         
                         st.success("¡Pago procesado exitosamente!")
