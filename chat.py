@@ -371,6 +371,7 @@ def procesar(texto):
         mem["total_pendiente"] = total
         return (f"🛒 **Resumen de tu pedido:**\n\n**Producto:** {prod.title()}\n**Cantidad:** {cantidad} unidades\n"
                f"**Total a pagar:** ${total}\n\n")
+        print("gracias por su compra")
 
     # 10) Detección de método de pago por voz
     if mem["estado_pago"] == "pendiente":
@@ -379,7 +380,7 @@ def procesar(texto):
             mem["metodo_pago"] = metodo_detectado
             metodo_nombre = METODOS_PAGO[metodo_detectado]["nombre"]
             return f"✅ Perfecto, seleccionaste: **{metodo_nombre}**. Ahora confirmá el pago usando los controles de abajo. 👇"
-            print("gracias por su compra")
+    
             
     # 11) Preguntas base - FUNCIONAN INMEDIATAMENTE
     if "café" in texto_l or "cafe" in texto_l:
@@ -498,6 +499,7 @@ if mem["estado_pago"] == "pendiente":
             mem["estado_pago"] = None
             mem["metodo_pago"] = None
             st.rerun()
+
 
 
 
