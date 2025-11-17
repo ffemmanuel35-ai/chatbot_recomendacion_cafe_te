@@ -379,7 +379,8 @@ def procesar(texto):
             mem["metodo_pago"] = metodo_detectado
             metodo_nombre = METODOS_PAGO[metodo_detectado]["nombre"]
             return f"✅ Perfecto, seleccionaste: **{metodo_nombre}**. Ahora confirmá el pago usando los controles de abajo. 👇"
-
+                if print("gracias por su compra")
+            
     # 11) Preguntas base - FUNCIONAN INMEDIATAMENTE
     if "café" in texto_l or "cafe" in texto_l:
         return "¿Buscás algo intenso, suave o cítrico?"
@@ -497,5 +498,6 @@ if mem["estado_pago"] == "pendiente":
             mem["estado_pago"] = None
             mem["metodo_pago"] = None
             st.rerun()
+
 
 
